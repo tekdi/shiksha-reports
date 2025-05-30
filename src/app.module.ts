@@ -7,6 +7,11 @@ import { UserProfileReport } from './entities/user-profile.entity';
 import { UserHandler } from './handlers/user.handler';
 import { TranformService } from './constants/transformation/transform-service';
 import { CohortSummaryReport } from './entities/cohort-summary.entity';
+import { AttendanceHandler } from './handlers/attendance.handler';
+import { DailyAttendanceReport } from './entities/daily-attendance-report.entity';
+import { AssessmentTracking } from './entities/assessment-tracking.entity';
+import { AssessmentTrackingScoreDetail } from './entities/assessment-tracking-score-detail.entity';
+import { AssessmentHandler } from './handlers/assessment.handler';
 
 @Module({
   imports: [
@@ -33,12 +38,20 @@ import { CohortSummaryReport } from './entities/cohort-summary.entity';
     }),
 
     // Register the entity for repository injection
-    TypeOrmModule.forFeature([UserProfileReport,CohortSummaryReport]),
+    TypeOrmModule.forFeature([
+      UserProfileReport, 
+      CohortSummaryReport, 
+      DailyAttendanceReport,
+      AssessmentTracking,
+      AssessmentTrackingScoreDetail
+    ]),
   ],
   providers: [
     KafkaConsumerService,
     DatabaseService,
     UserHandler,
+    AttendanceHandler,
+    AssessmentHandler,
     TranformService
   ],
 })
