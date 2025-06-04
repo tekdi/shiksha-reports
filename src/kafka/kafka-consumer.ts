@@ -108,7 +108,6 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
 
     switch (topic) {
       case 'user-topic':
-        console.log("userTopic");
         await this.handleUserEvent(eventType, data);
         break;
 
@@ -117,12 +116,10 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
         break;
 
       case 'attendance-topic':
-        console.log("attendanceTopic");
         await this.handleAttendanceEvent(eventType, data);
         break;
 
       case 'assessment-topic':
-        // console.log("assessmentTopic",data);
         await this.handleAssessmentEvent(eventType, data);
         break;
 
@@ -174,11 +171,9 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
 
   private async handleAssessmentEvent(eventType: string, data: any) {
     this.logger.log(`Handling assessment-event type: ${eventType}`);
-    console.log("hii")
     switch (eventType) {
       case 'ASSESSMENT_CREATED':
       case 'ASSESSMENT_UPDATED':
-        console.log("assessmentUpsert");
         return this.assessmentHandler.handleAssessmentUpsert(data);
   
       case 'ASSESSMENT_DELETED':

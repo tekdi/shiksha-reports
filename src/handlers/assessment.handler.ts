@@ -34,7 +34,6 @@ export class AssessmentHandler {
 
   async handleAssessmentUpsert(data: any) {
     const identifier = data?.courseId; // Adjust key if it's nested elsewhere
-    console.log("identifier",identifier);
     
     if (!identifier) {
       throw new Error('Identifier is required for API call');
@@ -60,13 +59,7 @@ export class AssessmentHandler {
     );
 
     const externalData = apiResponse.data.result.QuestionSet[0];
-    console.log("externalData",externalData);
 
-    // Step 2: Add this external data to original data if needed
-    // const enrichedData = {
-    //   ...data,
-    //   externalData,
-    // };
     const enrichedData = {
       assessmentTrackingId: data.assessmentTrackingId,
       userId: data.userId,
@@ -97,13 +90,28 @@ export class AssessmentHandler {
       framework: externalData.framework,
       summaryType: externalData.summaryType
     };
-    console.log("enrichedData",enrichedData);
+
     // Step 3: Transform and save
     // const transformedData = await this.tranformServie.transformAssessmentData(enrichedData);
     this.dbService.saveAssessmentData(enrichedData);
+    
+    const assessmentTrackingScoreDetailsData = data.scores.map((scoreData) => {
 
-    console.log("hiiii",data)
-
+      const assessmentScoreData ={
+        id: scoreData.id,
+        userId: scoreData.userId,
+        assessmentTrackingId: scoreData.assessmentTrackingId,
+        questionId: scoreData.questionId,
+        pass: scoreData.pass,
+        sectionId: scoreData.sectionId,
+        resValue: scoreData.resValue,
+        duration: scoreData.duration,
+        score: scoreData.score,
+        maxScore: scoreData.maxScore,
+        queTitle: scoreData.queTitle,
+      }
+      this.dbService.saveAssessmentScoreData(assessmentScoreData);
+    })
 
   }
 
