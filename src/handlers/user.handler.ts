@@ -8,7 +8,6 @@ export class UserHandler {
 
   async handleUserUpsert(data: any) {
     const trandFormedData = await this.tranformServie.transformUserData(data);
-    console.log(trandFormedData);
     return this.dbService.saveUserProfileData(trandFormedData);
   }
 
@@ -18,7 +17,6 @@ export class UserHandler {
 
   async handleCohortUpsert(data: any) {
     const trandFormedData = await this.tranformServie.transformUserData(data);
-    console.log(trandFormedData);
     return this.dbService.saveUserProfileData(trandFormedData);
   }
 
