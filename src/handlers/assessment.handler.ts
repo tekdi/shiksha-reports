@@ -1,35 +1,11 @@
-// import { Injectable } from '@nestjs/common';
-// import { DatabaseService } from '../services/database.service';
-// import { TranformService } from '../constants/transformation/transform-service';
-
-// @Injectable()
-// export class AssessmentHandler {
-//   constructor(
-//     private readonly dbService: DatabaseService,
-//     private readonly tranformServie: TranformService,
-//   ) {}
-
-//   async handleAssessmentUpsert(data: any) {
-//     const transformedData = await this.tranformServie.transformAssessmentData(data);
-//     return this.dbService.saveAssessmentData(transformedData);
-//   }
-
-//   async handleAssessmentDelete(data: any) {
-//     return this.dbService.deleteAssessmentData(data);
-//   }
-// } 
-
-
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
 import { DatabaseService } from '../services/database.service';
-import { TranformService } from '../constants/transformation/transform-service';
 
 @Injectable()
 export class AssessmentHandler {
   constructor(
     private readonly dbService: DatabaseService,
-    private readonly tranformServie: TranformService,
   ) {}
 
   async handleAssessmentUpsert(data: any) {
@@ -41,7 +17,7 @@ export class AssessmentHandler {
 
     // Step 1: Call external API
     const apiResponse = await axios.post(
-      'https://qa-interface.prathamdigital.org/interface/v1/action/composite/v3/search',
+      process.env.ASSESSMENT_API_URL,
       {
         request: {
           filters: {
@@ -49,15 +25,11 @@ export class AssessmentHandler {
           },
         },
       },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          Cookie:
-            'AWSALB=c6B+A+Xab3J969D5AKEyxg4pwghw+3S5jIuPlyoBPSY06OpzlB8Sx45e/MRPVHErjqfb23UDS2WalGwmwmtbJfjJBMaHrPQB47RoilfUz+x9VgL1hLQt6F51ZjGE; AWSALBCORS=c6B+A+Xab3J969D5AKEyxg4pwghw+3S5jIuPlyoBPSY06OpzlB8Sx45e/MRPVHErjqfb23UDS2WalGwmwmtbJfjJBMaHrPQB47RoilfUz+x9VgL1hLQt6F51ZjGE',
-        },
-      }
     );
 
+    if (!apiResponse.data?.result?.QuestionSet?.[0]) {
+        throw new Error('Invalid API response structure or empty QuestionSet');
+    }
     const externalData = apiResponse.data.result.QuestionSet[0];
 
     const enrichedData = {

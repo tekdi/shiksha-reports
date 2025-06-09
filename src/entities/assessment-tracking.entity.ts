@@ -17,10 +17,10 @@ export class AssessmentTracking {
   @Column({ name: 'attemptId', nullable: true })
   attemptId: string;
 
-  @Column({ name: 'createdOn', nullable: true, type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
+  @Column({ name: 'createdOn', nullable: true, type: 'timestamptz', default: () => 'now()' })
   createdOn: Date;
 
-  @Column({ name: 'lastAttemptedOn', nullable: true, type: 'timestamptz', default: () => 'CURRENT_TIMESTAMP' })
+  @Column({ name: 'lastAttemptedOn', nullable: true, type: 'timestamptz', default: () => 'now()' })
   lastAttemptedOn: Date;
 
   @Column({ name: 'assessmentSummary', nullable: true, type: 'jsonb' })

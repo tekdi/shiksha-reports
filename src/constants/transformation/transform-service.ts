@@ -6,7 +6,7 @@ import { AssessmentTrackingScoreDetail } from '../../entities/assessment-trackin
 
 
 @Injectable()
-export class TranformService {
+export class TransformService {
   constructor(){}
   
    async transformUserData(data: any) {
@@ -65,7 +65,8 @@ export class TranformService {
       };
       return transformedData;
     } catch (error) {
-      return error;
+      console.error('Error transforming daily attendance data:', error);
+      throw error;
     }
   }
   
