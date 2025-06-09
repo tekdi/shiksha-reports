@@ -1,20 +1,20 @@
 import { Injectable } from '@nestjs/common';
 import { UserProfileReport } from '../../entities/user-profile.entity';
-
-
+import { Course } from 'src/entities/course.entity';
 
 @Injectable()
 export class TranformService {
-  constructor(){}
-  
-   async transformUserData(data: any) {
+  constructor() {}
+
+  async transformUserData(data: any) {
     try {
-     const tenant = data.tenantData?.[0] ?? {};
-  
+      const tenant = data.tenantData?.[0] ?? {};
+
       // Extract custom field values
       const extractField = (label: string) =>
-        data.customFields?.find((f: any) => f.label === label)?.selectedValues?.[0]?.value ?? null;
-  
+        data.customFields?.find((f: any) => f.label === label)
+          ?.selectedValues?.[0]?.value ?? null;
+
       const transformedData: Partial<UserProfileReport> = {
         userId: data.userId,
         username: data.username,
@@ -40,12 +40,27 @@ export class TranformService {
         block: extractField('BLOCK'),
         village: extractField('VILLAGE'),
       };
-      console.log(transformedData)
+      console.log(transformedData);
       return transformedData;
     } catch (error) {
       return error;
     }
   }
-  
-  
+  async transformCourseData(data: any) {
+
+    return data;
+  }
+  mapContentToCourseEntity(content: any): Partial<Course> {
+    return {
+      courseDoId: content.identifier,
+      courseName: content.name,
+      channel: content.channel,
+      language: content.language || [],
+      program: content.program || [],
+      primaryUser: content.primaryUser || [],
+      targetAgeGroup: content.targetAgeGroup || [],
+      keywords: content.keywords || [],
+      details: content, // save full original JSON here
+    };
+  }
 }
