@@ -70,17 +70,17 @@ export class AssessmentHandler {
     const assessmentTrackingScoreDetailsData = data.scores.map((scoreData) => {
 
       const assessmentScoreData ={
-        id: scoreData.id,
-        userId: scoreData.userId,
-        assessmentTrackingId: scoreData.assessmentTrackingId,
-        questionId: scoreData.questionId,
-        pass: scoreData.pass,
-        sectionId: scoreData.sectionId,
-        resValue: scoreData.resValue,
-        duration: scoreData.duration,
-        score: scoreData.score,
-        maxScore: scoreData.maxScore,
-        queTitle: scoreData.queTitle,
+        id: scoreData?.id || null,
+        userId: scoreData?.userId || null,
+        assessmentTrackingId: scoreData?.assessmentTrackingId || null,
+        questionId: scoreData?.questionId || null,
+        pass: scoreData?.pass || null,
+        sectionId: scoreData?.sectionId || null,
+        resValue: scoreData?.resValue || null,
+        duration: scoreData?.duration || null,
+        score: scoreData?.score || null,
+        maxScore: scoreData?.maxScore || null,
+        queTitle: scoreData?.queTitle || null,
       }
       this.dbService.saveAssessmentScoreData(assessmentScoreData);
     })
