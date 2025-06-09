@@ -17,7 +17,7 @@ export class AssessmentHandler {
 
     // Step 1: Call external API
     const apiResponse = await axios.post(
-      process.env.ASSESSMENT_API_URL,
+      process.env.MIDDLEWARE_SERVICE_BASE_URL+'action/composite/v3/search',
       {
         request: {
           filters: {
