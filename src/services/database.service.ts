@@ -45,7 +45,7 @@ export class DatabaseService {
   async updateUserCourseCertificate(data: any) {
     //update record by where condition of userId and courseId
     console.log('Updating user course certificate data:', data);
-    const { userId, courseId } = data.data;
-    return this.userCourseRepo.update({ userId, courseId }, { ...data.data });
+    const { userId, courseId } = data;
+    return this.userCourseRepo.update({ userId, courseId }, { ...data });
   }
 }
