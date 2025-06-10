@@ -2,6 +2,8 @@ import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/commo
 import { ConfigService } from '@nestjs/config';
 import { Kafka, Consumer, EachMessagePayload } from 'kafkajs';
 import { UserHandler } from '../handlers/user.handler';
+import { AttendanceHandler } from '../handlers/attendance.handler';
+import { AssessmentHandler } from '../handlers/assessment.handler';
 
 @Injectable()
 export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
@@ -12,6 +14,8 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly configService: ConfigService,
     private readonly userHandler: UserHandler,
+    private readonly attendanceHandler: AttendanceHandler,
+    private readonly assessmentHandler: AssessmentHandler,
   ) {
     const brokers = this.configService.get<string>('KAFKA_BROKERS', 'localhost:9092').split(',');
     const clientId = this.configService.get<string>('KAFKA_CLIENT_ID', 'centralized-consumer');
@@ -83,7 +87,7 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
           }
 
           const event = JSON.parse(value);
-          this.logger.debug(`Received event from topic [${topic}]: ${value}`);
+          // this.logger.debug(`Received event from topic [${topic}]: ${value}`);
 
           await this.processEvent(topic, event);
         } catch (error) {
@@ -111,8 +115,12 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
         await this.handleEventEvent(eventType, data);
         break;
 
-      case 'attendance-events':
+      case 'attendance-topic':
         await this.handleAttendanceEvent(eventType, data);
+        break;
+
+      case 'assessment-topic':
+        await this.handleAssessmentEvent(eventType, data);
         break;
 
       default:
@@ -148,6 +156,31 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
 
   private async handleAttendanceEvent(eventType: string, data: any) {
     this.logger.log(`Handling attendance-event type: ${eventType}`);
-    // TODO: Implement logic for ATTENDANCE_MARKED, etc.
+    switch (eventType) {
+      case 'ATTENDANCE_CREATED':
+      case 'ATTENDANCE_UPDATED':
+        return this.attendanceHandler.handleAttendanceUpsert(data);
+  
+      case 'ATTENDANCE_DELETED':
+        return this.attendanceHandler.handleAttendanceDelete(data);
+        
+      default:
+        this.logger.warn(`Unhandled attendance eventType: ${eventType}`);
+    }
+  }
+
+  private async handleAssessmentEvent(eventType: string, data: any) {
+    this.logger.log(`Handling assessment-event type: ${eventType}`);
+    switch (eventType) {
+      case 'ASSESSMENT_CREATED':
+      case 'ASSESSMENT_UPDATED':
+        return this.assessmentHandler.handleAssessmentUpsert(data);
+  
+      case 'ASSESSMENT_DELETED':
+        return this.assessmentHandler.handleAssessmentDelete(data);
+        
+      default:
+        this.logger.warn(`Unhandled assessment eventType: ${eventType}`);
+    }
   }
 }
