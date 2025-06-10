@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { DatabaseService } from '../services/database.service';
-import { TranformService } from 'src/constants/transformation/transform-service';
 import { ConfigService } from '@nestjs/config';
+import { TransformService } from 'src/constants/transformation/transform-service';
 const axios = require('axios');
 
 @Injectable()
 export class CourseHandler {
   constructor(
     private readonly dbService: DatabaseService,
-    private tranformServie: TranformService,
+    private tranformServie: TransformService,
     private configService: ConfigService,
   ) {}
 

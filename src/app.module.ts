@@ -5,7 +5,7 @@ import { KafkaConsumerService } from './kafka/kafka-consumer';
 import { DatabaseService } from './services/database.service';
 import { UserProfileReport } from './entities/user-profile.entity';
 import { UserHandler } from './handlers/user.handler';
-import { TranformService } from './constants/transformation/transform-service';
+import { TransformService } from './constants/transformation/transform-service';
 import { CohortSummaryReport } from './entities/cohort-summary.entity';
 import { UserCourseCertificate } from './entities/user-course-data.entity';
 import { CourseHandler } from './handlers/course.handler';
@@ -60,7 +60,7 @@ import { AssessmentHandler } from './handlers/assessment.handler';
     CourseHandler,
     AttendanceHandler,
     AssessmentHandler,
-    TranformService,
+    TransformService,
   ],
 })
 export class AppModule {}

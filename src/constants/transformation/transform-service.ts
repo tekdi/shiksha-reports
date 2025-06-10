@@ -1,28 +1,15 @@
 import { Injectable } from '@nestjs/common';
 import { UserProfileReport } from '../../entities/user-profile.entity';
-<<<<<<< HEAD
-import { Course } from 'src/entities/course.entity';
-import { DailyAttendanceReport } from 'src/entities/daily-attendance-report.entity';
-import { AssessmentTracking } from 'src/entities/assessment-tracking.entity';
-import { AssessmentTrackingScoreDetail } from 'src/entities/assessment-tracking-score-detail.entity';
-
-@Injectable()
-export class TranformService {
-  constructor() {}
-
-  async transformUserData(data: any) {
-=======
 import { DailyAttendanceReport } from '../../entities/daily-attendance-report.entity';
 import { AssessmentTracking } from '../../entities/assessment-tracking.entity';
 import { AssessmentTrackingScoreDetail } from '../../entities/assessment-tracking-score-detail.entity';
-
+import { Course } from 'src/entities/course.entity';
 
 @Injectable()
 export class TransformService {
-  constructor(){}
-  
-   async transformUserData(data: any) {
->>>>>>> 152d09d6608bc5434460b1555c80fab364a99a07
+  constructor() {}
+
+  async transformUserData(data: any) {
     try {
       const tenant = data.tenantData?.[0] ?? {};
 
@@ -77,7 +64,7 @@ export class TransformService {
       details: content, // save full original JSON here
     };
   }
-  
+
   async transformDailyAttendanceData(data: any) {
     try {
       const transformedData: Partial<DailyAttendanceReport> = {
@@ -91,7 +78,7 @@ export class TransformService {
         createdAt: data.createdAt ? new Date(data.createdAt) : undefined,
         updatedAt: data.updatedAt ? new Date(data.updatedAt) : undefined,
         createdBy: data.createdBy,
-        updatedBy: data.updatedBy
+        updatedBy: data.updatedBy,
       };
       return transformedData;
     } catch (error) {
@@ -99,7 +86,7 @@ export class TransformService {
       throw error;
     }
   }
-  
+
   async transformAssessmentData(data: any) {
     try {
       const transformedData: Partial<AssessmentTracking> = {
@@ -109,7 +96,9 @@ export class TransformService {
         contentId: data.contentId,
         attemptId: data.attemptId,
         createdOn: data.createdOn ? new Date(data.createdOn) : new Date(),
-        lastAttemptedOn: data.lastAttemptedOn ? new Date(data.lastAttemptedOn) : new Date(),
+        lastAttemptedOn: data.lastAttemptedOn
+          ? new Date(data.lastAttemptedOn)
+          : new Date(),
         assessmentSummary: data.assessmentSummary,
         totalMaxScore: data.totalMaxScore,
         totalScore: data.totalScore,
@@ -129,7 +118,7 @@ export class TransformService {
         contentLanguage: data.contentLanguage,
         status: data.status,
         framework: data.framework,
-        summaryType: data.summaryType
+        summaryType: data.summaryType,
       };
       return transformedData;
     } catch (error) {
@@ -137,7 +126,9 @@ export class TransformService {
     }
   }
 
-  async transformAssessmentScoreData(data: any): Promise<Partial<AssessmentTrackingScoreDetail>> {
+  async transformAssessmentScoreData(
+    data: any,
+  ): Promise<Partial<AssessmentTrackingScoreDetail>> {
     try {
       const transformedData: Partial<AssessmentTrackingScoreDetail> = {
         id: data.id,
