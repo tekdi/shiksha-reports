@@ -5,6 +5,9 @@ import { UserProfileReport } from '../entities/user-profile.entity';
 import { CohortSummaryReport } from 'src/entities/cohort-summary.entity';
 import { UserCourseCertificate } from 'src/entities/user-course-data.entity';
 import { Course } from 'src/entities/course.entity';
+import { AssessmentTrackingScoreDetail } from 'src/entities/assessment-tracking-score-detail.entity';
+import { AssessmentTracking } from 'src/entities/assessment-tracking.entity';
+import { DailyAttendanceReport } from 'src/entities/daily-attendance-report.entity';
 
 @Injectable()
 export class DatabaseService {
@@ -17,6 +20,12 @@ export class DatabaseService {
     private courseRepo: Repository<Course>,
     @InjectRepository(UserCourseCertificate)
     private userCourseRepo: Repository<UserCourseCertificate>,
+    @InjectRepository(DailyAttendanceReport)
+    private dailyAttendanceRepo: Repository<DailyAttendanceReport>,
+    @InjectRepository(AssessmentTracking)
+    private assessmentTrackingRepo: Repository<AssessmentTracking>,
+    @InjectRepository(AssessmentTrackingScoreDetail)
+    private assessmentTrackingScoreDetailRepo: Repository<AssessmentTrackingScoreDetail>,
   ) {}
 
   async saveUserProfileData(data: any) {
@@ -47,5 +56,29 @@ export class DatabaseService {
     console.log('Updating user course certificate data:', data);
     const { userId, courseId } = data;
     return this.userCourseRepo.update({ userId, courseId }, { ...data });
+  }
+
+  async saveDailyAttendanceData(data: any) {
+    return this.dailyAttendanceRepo.save(data);
+  }
+
+  async deleteDailyAttendanceData(data: any) {
+    return this.dailyAttendanceRepo.delete(data);
+  }
+
+  async saveAssessmentData(data: any) {
+    return this.assessmentTrackingRepo.save(data);
+  }
+
+  async deleteAssessmentData(data: any) {
+    return this.assessmentTrackingRepo.delete(data);
+  }
+
+  async saveAssessmentScoreData(data: any) {
+    return this.assessmentTrackingScoreDetailRepo.save(data);
+  }
+
+  async deleteAssessmentScoreData(data: any) {
+    return this.assessmentTrackingScoreDetailRepo.delete(data);
   }
 }

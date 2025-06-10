@@ -10,6 +10,11 @@ import { CohortSummaryReport } from './entities/cohort-summary.entity';
 import { UserCourseCertificate } from './entities/user-course-data.entity';
 import { CourseHandler } from './handlers/course.handler';
 import { Course } from './entities/course.entity';
+import { DailyAttendanceReport } from './entities/daily-attendance-report.entity';
+import { AssessmentTracking } from './entities/assessment-tracking.entity';
+import { AssessmentTrackingScoreDetail } from './entities/assessment-tracking-score-detail.entity';
+import { AttendanceHandler } from './handlers/attendance.handler';
+import { AssessmentHandler } from './handlers/assessment.handler';
 
 @Module({
   imports: [
@@ -41,6 +46,11 @@ import { Course } from './entities/course.entity';
       CohortSummaryReport,
       UserCourseCertificate,
       Course,
+      UserProfileReport,
+      CohortSummaryReport,
+      DailyAttendanceReport,
+      AssessmentTracking,
+      AssessmentTrackingScoreDetail,
     ]),
   ],
   providers: [
@@ -48,6 +58,8 @@ import { Course } from './entities/course.entity';
     DatabaseService,
     UserHandler,
     CourseHandler,
+    AttendanceHandler,
+    AssessmentHandler,
     TranformService,
   ],
 })
