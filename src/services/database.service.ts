@@ -8,6 +8,9 @@ import { Course } from 'src/entities/course.entity';
 import { AssessmentTrackingScoreDetail } from 'src/entities/assessment-tracking-score-detail.entity';
 import { AssessmentTracking } from 'src/entities/assessment-tracking.entity';
 import { DailyAttendanceReport } from 'src/entities/daily-attendance-report.entity';
+import { Event } from 'src/entities/event.entity';
+import { EventDetails } from 'src/entities/event-details.entity';
+import { EventRepetition } from 'src/entities/event-repetition.entity';
 
 @Injectable()
 export class DatabaseService {
@@ -26,6 +29,12 @@ export class DatabaseService {
     private assessmentTrackingRepo: Repository<AssessmentTracking>,
     @InjectRepository(AssessmentTrackingScoreDetail)
     private assessmentTrackingScoreDetailRepo: Repository<AssessmentTrackingScoreDetail>,
+    @InjectRepository(Event)
+    private eventRepo: Repository<Event>,
+    @InjectRepository(EventDetails)
+    private eventDetailsRepo: Repository<EventDetails>,
+    @InjectRepository(EventRepetition)
+    private eventRepetitionRepo: Repository<EventRepetition>,
   ) {}
 
   async saveUserProfileData(data: any) {
@@ -80,5 +89,23 @@ export class DatabaseService {
 
   async deleteAssessmentScoreData(data: any) {
     return this.assessmentTrackingScoreDetailRepo.delete(data);
+  }
+
+  async saveEventDetailsData(data: any) {
+    return this.eventDetailsRepo.save(data);
+  }
+
+  async saveEventData(data: any) {
+    return this.eventRepo.save(data);
+  }
+
+  async saveEventRepetitionData(data: any) {
+    return this.eventRepetitionRepo.save(data);
+  }
+
+  async deleteEventData(data: { eventDetailId: string }) {
+    const { eventDetailId } = data;
+    await this.eventRepetitionRepo.delete({ eventDetailId });
+    return this.eventDetailsRepo.delete({ eventDetailId });
   }
 }
