@@ -3,20 +3,21 @@ import { UserProfileReport } from '../../entities/user-profile.entity';
 import { DailyAttendanceReport } from '../../entities/daily-attendance-report.entity';
 import { AssessmentTracking } from '../../entities/assessment-tracking.entity';
 import { AssessmentTrackingScoreDetail } from '../../entities/assessment-tracking-score-detail.entity';
-
+import { Course } from 'src/entities/course.entity';
 
 @Injectable()
 export class TransformService {
-  constructor(){}
-  
-   async transformUserData(data: any) {
+  constructor() {}
+
+  async transformUserData(data: any) {
     try {
-     const tenant = data.tenantData?.[0] ?? {};
-  
+      const tenant = data.tenantData?.[0] ?? {};
+
       // Extract custom field values
       const extractField = (label: string) =>
-        data.customFields?.find((f: any) => f.label === label)?.selectedValues?.[0]?.value ?? null;
-  
+        data.customFields?.find((f: any) => f.label === label)
+          ?.selectedValues?.[0]?.value ?? null;
+
       const transformedData: Partial<UserProfileReport> = {
         userId: data.userId,
         username: data.username,
@@ -47,7 +48,23 @@ export class TransformService {
       return error;
     }
   }
-  
+  async transformCourseData(data: any) {
+    return data;
+  }
+  mapContentToCourseEntity(content: any): Partial<Course> {
+    return {
+      courseDoId: content.identifier,
+      courseName: content.name,
+      channel: content.channel,
+      language: content.language || [],
+      program: content.program || [],
+      primaryUser: content.primaryUser || [],
+      targetAgeGroup: content.targetAgeGroup || [],
+      keywords: content.keywords || [],
+      details: content, // save full original JSON here
+    };
+  }
+
   async transformDailyAttendanceData(data: any) {
     try {
       const transformedData: Partial<DailyAttendanceReport> = {
@@ -61,7 +78,7 @@ export class TransformService {
         createdAt: data.createdAt ? new Date(data.createdAt) : undefined,
         updatedAt: data.updatedAt ? new Date(data.updatedAt) : undefined,
         createdBy: data.createdBy,
-        updatedBy: data.updatedBy
+        updatedBy: data.updatedBy,
       };
       return transformedData;
     } catch (error) {
@@ -69,7 +86,7 @@ export class TransformService {
       throw error;
     }
   }
-  
+
   async transformAssessmentData(data: any) {
     try {
       const transformedData: Partial<AssessmentTracking> = {
@@ -79,7 +96,9 @@ export class TransformService {
         contentId: data.contentId,
         attemptId: data.attemptId,
         createdOn: data.createdOn ? new Date(data.createdOn) : new Date(),
-        lastAttemptedOn: data.lastAttemptedOn ? new Date(data.lastAttemptedOn) : new Date(),
+        lastAttemptedOn: data.lastAttemptedOn
+          ? new Date(data.lastAttemptedOn)
+          : new Date(),
         assessmentSummary: data.assessmentSummary,
         totalMaxScore: data.totalMaxScore,
         totalScore: data.totalScore,
@@ -99,7 +118,7 @@ export class TransformService {
         contentLanguage: data.contentLanguage,
         status: data.status,
         framework: data.framework,
-        summaryType: data.summaryType
+        summaryType: data.summaryType,
       };
       return transformedData;
     } catch (error) {
@@ -107,7 +126,9 @@ export class TransformService {
     }
   }
 
-  async transformAssessmentScoreData(data: any): Promise<Partial<AssessmentTrackingScoreDetail>> {
+  async transformAssessmentScoreData(
+    data: any,
+  ): Promise<Partial<AssessmentTrackingScoreDetail>> {
     try {
       const transformedData: Partial<AssessmentTrackingScoreDetail> = {
         id: data.id,
@@ -128,6 +149,4 @@ export class TransformService {
       throw error;
     }
   }
-  
-  
 }

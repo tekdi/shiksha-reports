@@ -1,7 +1,13 @@
-import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleInit,
+  OnModuleDestroy,
+  Logger,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Kafka, Consumer, EachMessagePayload } from 'kafkajs';
 import { UserHandler } from '../handlers/user.handler';
+import { CourseHandler } from 'src/handlers/course.handler';
 import { AttendanceHandler } from '../handlers/attendance.handler';
 import { AssessmentHandler } from '../handlers/assessment.handler';
 
@@ -14,11 +20,17 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
   constructor(
     private readonly configService: ConfigService,
     private readonly userHandler: UserHandler,
+    private readonly courseHandler: CourseHandler,
     private readonly attendanceHandler: AttendanceHandler,
     private readonly assessmentHandler: AssessmentHandler,
   ) {
-    const brokers = this.configService.get<string>('KAFKA_BROKERS', 'localhost:9092').split(',');
-    const clientId = this.configService.get<string>('KAFKA_CLIENT_ID', 'centralized-consumer');
+    const brokers = this.configService
+      .get<string>('KAFKA_BROKERS', 'localhost:9092')
+      .split(',');
+    const clientId = this.configService.get<string>(
+      'KAFKA_CLIENT_ID',
+      'centralized-consumer',
+    );
 
     this.kafka = new Kafka({
       clientId,
@@ -29,7 +41,10 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
       },
     });
 
-    const groupId = this.configService.get<string>('KAFKA_CONSUMER_GROUP_ID', 'centralized-consumer-group');
+    const groupId = this.configService.get<string>(
+      'KAFKA_CONSUMER_GROUP_ID',
+      'centralized-consumer-group',
+    );
     this.consumer = this.kafka.consumer({ groupId });
   }
 
@@ -53,7 +68,10 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
       await this.consumer.connect();
       this.logger.log('Kafka consumer connected');
     } catch (error) {
-      this.logger.error(`Failed to connect Kafka consumer: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to connect Kafka consumer: ${error.message}`,
+        error.stack,
+      );
       throw error;
     }
   }
@@ -63,12 +81,17 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
       await this.consumer.disconnect();
       this.logger.log('Kafka consumer disconnected');
     } catch (error) {
-      this.logger.error(`Failed to disconnect Kafka consumer: ${error.message}`, error.stack);
+      this.logger.error(
+        `Failed to disconnect Kafka consumer: ${error.message}`,
+        error.stack,
+      );
     }
   }
 
   private async subscribeToTopics() {
-    const topics = this.configService.get<string>('KAFKA_TOPICS', 'user-topic').split(',');
+    const topics = this.configService
+      .get<string>('KAFKA_TOPICS', 'user-topic')
+      .split(',');
     for (const topic of topics) {
       await this.consumer.subscribe({ topic, fromBeginning: false });
       this.logger.log(`Subscribed to Kafka topic: ${topic}`);
@@ -77,7 +100,11 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
 
   private async runConsumer() {
     await this.consumer.run({
-      eachMessage: async ({ topic, partition, message }: EachMessagePayload) => {
+      eachMessage: async ({
+        topic,
+        partition,
+        message,
+      }: EachMessagePayload) => {
         try {
           const value = message.value?.toString();
 
@@ -91,7 +118,10 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
 
           await this.processEvent(topic, event);
         } catch (error) {
-          this.logger.error(`Error processing Kafka message: ${error.message}`, error.stack);
+          this.logger.error(
+            `Error processing Kafka message: ${error.message}`,
+            error.stack,
+          );
           // Optionally: Send to DLQ
         }
       },
@@ -102,7 +132,9 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
     const { eventType, data } = event;
 
     if (!eventType || !data) {
-      this.logger.warn(`Invalid event received from topic ${topic}: ${JSON.stringify(event)}`);
+      this.logger.warn(
+        `Invalid event received from topic ${topic}: ${JSON.stringify(event)}`,
+      );
       return;
     }
 
@@ -117,6 +149,9 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
 
       case 'attendance-topic':
         await this.handleAttendanceEvent(eventType, data);
+        break;
+      case 'course-topic':
+        await this.handleCourseEvent(eventType, data);
         break;
 
       case 'assessment-topic':
@@ -133,10 +168,10 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
       case 'USER_CREATED':
       case 'USER_UPDATED':
         return this.userHandler.handleUserUpsert(data);
-  
+
       case 'USER_DELETED':
         return this.userHandler.handleUserDelete(data);
-        
+
       case 'COHORT_CREATED':
       case 'COHORT_UPDATED':
         return this.userHandler.handleCohortUpsert(data);
@@ -147,7 +182,6 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
         this.logger.warn(`Unhandled user eventType: ${eventType}`);
     }
   }
-  
 
   private async handleEventEvent(eventType: string, data: any) {
     this.logger.log(`Handling event-event type: ${eventType}`);
@@ -181,6 +215,17 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
         
       default:
         this.logger.warn(`Unhandled assessment eventType: ${eventType}`);
+    }
+  }
+  private async handleCourseEvent(eventType: string, data: any) {
+    this.logger.log(`Handling course-event type: ${eventType}`);
+    switch (eventType) {
+      case 'COURSE_ENROLLMENT_CREATED':
+        return this.courseHandler.handleUserCourseadd(data);
+      case 'COURSE_STATUS_UPDATED':
+        return this.courseHandler.handleUserCourseUpdate(data);
+      default:
+        this.logger.warn(`Unhandled course eventType: ${eventType}`);
     }
   }
 }
