@@ -15,6 +15,10 @@ import { AssessmentTracking } from './entities/assessment-tracking.entity';
 import { AssessmentTrackingScoreDetail } from './entities/assessment-tracking-score-detail.entity';
 import { AttendanceHandler } from './handlers/attendance.handler';
 import { AssessmentHandler } from './handlers/assessment.handler';
+import { Event } from './entities/event.entity';
+import { EventDetails } from './entities/event-details.entity';
+import { EventRepetition } from './entities/event-repetition.entity';
+import { EventHandler } from './handlers/event.handler';
 
 @Module({
   imports: [
@@ -51,6 +55,9 @@ import { AssessmentHandler } from './handlers/assessment.handler';
       DailyAttendanceReport,
       AssessmentTracking,
       AssessmentTrackingScoreDetail,
+      Event,
+      EventDetails,
+      EventRepetition,
     ]),
   ],
   providers: [
@@ -60,6 +67,7 @@ import { AssessmentHandler } from './handlers/assessment.handler';
     CourseHandler,
     AttendanceHandler,
     AssessmentHandler,
+    EventHandler,
     TransformService,
   ],
 })

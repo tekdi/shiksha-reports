@@ -12,6 +12,7 @@ export class CourseHandler {
     private configService: ConfigService,
   ) {}
 
+
   async handleUserCourseadd(data: any) {
     try {
       //fetch course details
@@ -27,6 +28,7 @@ export class CourseHandler {
     const trandFormedData = await this.tranformServie.transformCourseData(data);
     return this.dbService.updateUserCourseCertificate(trandFormedData);
   }
+  
   //get courseName
   async getCourseName(courseId) {
     const url =

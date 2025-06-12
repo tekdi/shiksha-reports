@@ -10,6 +10,7 @@ import { UserHandler } from '../handlers/user.handler';
 import { CourseHandler } from 'src/handlers/course.handler';
 import { AttendanceHandler } from '../handlers/attendance.handler';
 import { AssessmentHandler } from '../handlers/assessment.handler';
+import { EventHandler } from 'src/handlers/event.handler';
 
 @Injectable()
 export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
@@ -23,6 +24,7 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
     private readonly courseHandler: CourseHandler,
     private readonly attendanceHandler: AttendanceHandler,
     private readonly assessmentHandler: AssessmentHandler,
+    private readonly eventHandler: EventHandler,
   ) {
     const brokers = this.configService
       .get<string>('KAFKA_BROKERS', 'localhost:9092')
@@ -137,13 +139,14 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
       );
       return;
     }
+    console.log('souravtopic', topic);
 
     switch (topic) {
       case 'user-topic':
         await this.handleUserEvent(eventType, data);
         break;
 
-      case 'event-events':
+      case 'event-topic':
         await this.handleEventEvent(eventType, data);
         break;
 
@@ -185,7 +188,17 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
 
   private async handleEventEvent(eventType: string, data: any) {
     this.logger.log(`Handling event-event type: ${eventType}`);
-    // TODO: Implement logic for EVENT_CREATED, etc.
+    switch (eventType) {
+      case 'EVENT_CREATED':
+      case 'EVENT_UPDATED':
+        return this.eventHandler.handleEventUpsert(data);
+
+      case 'EVENT_DELETED':
+        return this.eventHandler.handleEventDelete(data);
+
+      default:
+        this.logger.warn(`Unhandled event eventType: ${eventType}`);
+    }
   }
 
   private async handleAttendanceEvent(eventType: string, data: any) {
