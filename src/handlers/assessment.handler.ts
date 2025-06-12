@@ -27,10 +27,10 @@ export class AssessmentHandler {
       },
     );
 
-    if (!apiResponse.data?.result?.QuestionSet?.[0]) {
+    if (!(apiResponse.data as any)?.result?.QuestionSet?.[0]) {
         throw new Error('Invalid API response structure or empty QuestionSet');
     }
-    const externalData = apiResponse.data.result.QuestionSet[0];
+    const externalData = (apiResponse.data as any)?.result?.QuestionSet?.[0];
 
     const enrichedData = {
       assessmentTrackingId: data.assessmentTrackingId,
