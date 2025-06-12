@@ -50,6 +50,9 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ inputs.environment == 'dev' }}
     steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
       - name: Deploy Stack to Dev
         uses: appleboy/ssh-action@master
         with:
@@ -71,12 +74,18 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ inputs.environment == 'qa' }}
     steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION_NAME }}
+
+      - name: Create manifest directory if not exists
+        run: mkdir -p manifest
 
       - name: Copy .env file
         env:
@@ -89,8 +98,8 @@ jobs:
           IMAGE_TAG: ${{ inputs.tag }}
         run: |
           aws eks update-kubeconfig --name ${{ secrets.EKS_CLUSTER_NAME_QA }} --region ${{ secrets.AWS_REGION_NAME }}
-          envsubst < manifest/shiksha-report.yaml > manifest/shiksha-report-updated.yaml
-          kubectl apply -f manifest/shiksha-report-updated.yaml
+          envsubst < manifest/shiksha-reports.yaml > manifest/shiksha-reports-updated.yaml
+          kubectl apply -f manifest/shiksha-reports-updated.yaml
           kubectl apply -f manifest/configmap.yaml
           sleep 10
           kubectl get pods | grep shiksha-reports
@@ -101,12 +110,18 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ inputs.environment == 'prod' }}
     steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ secrets.AWS_REGION_NAME }}
+
+      - name: Create manifest directory if not exists
+        run: mkdir -p manifest
 
       - name: Copy .env file
         env:
@@ -119,8 +134,8 @@ jobs:
           IMAGE_TAG: ${{ inputs.tag }}
         run: |
           aws eks update-kubeconfig --name ${{ secrets.EKS_CLUSTER_NAME_PROD }} --region ${{ secrets.AWS_REGION_NAME }}
-          envsubst < manifest/shiksha-report.yaml > manifest/shiksha-report-updated.yaml
-          kubectl apply -f manifest/shiksha-report-updated.yaml
+          envsubst < manifest/shiksha-reports.yaml > manifest/shiksha-reports-updated.yaml
+          kubectl apply -f manifest/shiksha-reports-updated.yaml
           kubectl apply -f manifest/configmap.yaml
           sleep 10
           kubectl get pods | grep shiksha-reports
