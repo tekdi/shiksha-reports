@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: shiksha-reports
+  name: shiksha-reports
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shiksha-reports
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: shiksha-reports
+    spec:
+      terminationGracePeriodSeconds: 0
+      containers:
+      - image: ${ECR_REPOSITORY}:${IMAGE_TAG}
+        imagePullPolicy: "Always"
+        name: shiksha-reports
+        ports:
+        - containerPort: 4000
+        envFrom:
+        - configMapRef:
+            name: shiksha-reports-service-config
+        resources: {}
+      - name: cloudwatch-logs-agent
+        image: amazon/aws-for-fluent-bit:latest
+        imagePullPolicy: Always
+        env:
+          - name: REGION
+            value: ap-south-1
+          - name: LOG_GROUP
+            value: /aws/ecs/user-service
+        resources: {}
+      restartPolicy: Always
+status: {}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: shiksha-reports
+spec:
+  type: ClusterIP
+  ports:
+  - port: 4000
+    protocol: TCP
+  selector:
+    app: shiksha-reports
