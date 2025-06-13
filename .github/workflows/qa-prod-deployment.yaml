@@ -50,7 +50,7 @@ jobs:
           EKS_CLUSTER_NAME: ${{ github.event.inputs.environment == 'prod' && secrets.EKS_CLUSTER_NAME_PROD || secrets.EKS_CLUSTER_NAME_QA }}
         run: |
           aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --region ${{ secrets.AWS_REGION_NAME }}
-          kubectl apply -f manifest/shiksha-reports-updated.yaml
+          kubectl apply -f manifest/shiksha-report-updated.yaml
           kubectl apply -f manifest/configmap.yaml
           sleep 10
           kubectl get pods | grep shiksha-reports
