@@ -1,0 +1,82 @@
+name: Build and Deploy Workflow
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  build:
+    name: Build and Push Docker Image to AWS ECR
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Log in to Amazon ECR
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION_NAME }}
+        run: |
+          aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin ${{ secrets.ECR_ACCOUNT }}
+
+      - name: Build, Tag, and Push Docker Image
+        env:
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+          AWS_REGION: ${{ secrets.AWS_REGION_NAME }}
+        run: |
+          TAG="${GITHUB_REF##*/}"
+          docker build -t $ECR_REPOSITORY:$TAG .
+          docker tag $ECR_REPOSITORY:$TAG $ECR_REPOSITORY:$TAG
+          docker push $ECR_REPOSITORY:$TAG
+
+  deploy:
+    name: Deploy to AWS EKS
+    needs: build
+    runs-on: ubuntu-latest
+    inputs:
+      environment:
+        description: "Target environment (qa or prod)"
+        required: true
+        default: "qa"
+      tag:
+        description: "Image tag to deploy"
+        required: true
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION_NAME }}
+
+      - name: Create manifest directory if not exists
+        run: mkdir -p manifest
+
+      - name: Generate ConfigMap YAML
+        env:
+          ENV_CONTENT: ${{ inputs.environment == 'prod' && secrets.ENV_CONTENT_PROD || secrets.ENV_CONTENT_QA }}
+        run: echo "$ENV_CONTENT" > manifest/configmap.yaml
+
+      - name: Update Deployment Manifest
+        env:
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+          IMAGE_TAG: ${{ inputs.tag }}
+        run: |
+          envsubst < manifest/shiksha-reports.yaml > manifest/shiksha-reports-updated.yaml
+
+      - name: Deploy to AWS EKS
+        env:
+          EKS_CLUSTER_NAME: ${{ inputs.environment == 'prod' && secrets.EKS_CLUSTER_NAME_PROD || secrets.EKS_CLUSTER_NAME_QA }}
+        run: |
+          aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --region ${{ secrets.AWS_REGION_NAME }}
+          kubectl apply -f manifest/shiksha-reports-updated.yaml
+          kubectl apply -f manifest/configmap.yaml
+          sleep 10
+          kubectl get pods | grep shiksha-reports
