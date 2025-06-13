@@ -63,7 +63,7 @@ jobs:
       - name: Generate ConfigMap YAML
         env:
           ENV_CONTENT: ${{ github.event.inputs.environment == 'prod' && secrets.ENV_CONTENT_PROD || secrets.ENV_CONTENT_QA }}
-        run: echo "$ENV_CONTENT" > manifest/configmap.yaml
+        run: echo "$ENV_CONTENT" > manifest/configmap.yaml && echo "${{ secrets.MANIFEST }}" > manifest/shiksha-reports.yaml && ls -ltra && ls -ltra manifest
 
       - name: Update Deployment Manifest
         env:
