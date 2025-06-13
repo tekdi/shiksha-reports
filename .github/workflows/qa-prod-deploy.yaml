@@ -4,6 +4,15 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment (qa or prod)"
+        required: true
+        default: "qa"
+      tag:
+        description: "Image tag to deploy"
+        required: true
 
 jobs:
   build:
@@ -36,14 +45,6 @@ jobs:
     name: Deploy to AWS EKS
     needs: build
     runs-on: ubuntu-latest
-    inputs:
-      environment:
-        description: "Target environment (qa or prod)"
-        required: true
-        default: "qa"
-      tag:
-        description: "Image tag to deploy"
-        required: true
 
     steps:
       - name: Check out repository
@@ -61,19 +62,19 @@ jobs:
 
       - name: Generate ConfigMap YAML
         env:
-          ENV_CONTENT: ${{ inputs.environment == 'prod' && secrets.ENV_CONTENT_PROD || secrets.ENV_CONTENT_QA }}
+          ENV_CONTENT: ${{ github.event.inputs.environment == 'prod' && secrets.ENV_CONTENT_PROD || secrets.ENV_CONTENT_QA }}
         run: echo "$ENV_CONTENT" > manifest/configmap.yaml
 
       - name: Update Deployment Manifest
         env:
           ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
-          IMAGE_TAG: ${{ inputs.tag }}
+          IMAGE_TAG: ${{ github.event.inputs.tag }}
         run: |
           envsubst < manifest/shiksha-reports.yaml > manifest/shiksha-reports-updated.yaml
 
       - name: Deploy to AWS EKS
         env:
-          EKS_CLUSTER_NAME: ${{ inputs.environment == 'prod' && secrets.EKS_CLUSTER_NAME_PROD || secrets.EKS_CLUSTER_NAME_QA }}
+          EKS_CLUSTER_NAME: ${{ github.event.inputs.environment == 'prod' && secrets.EKS_CLUSTER_NAME_PROD || secrets.EKS_CLUSTER_NAME_QA }}
         run: |
           aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --region ${{ secrets.AWS_REGION_NAME }}
           kubectl apply -f manifest/shiksha-reports-updated.yaml
