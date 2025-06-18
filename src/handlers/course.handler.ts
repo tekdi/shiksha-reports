@@ -12,11 +12,13 @@ export class CourseHandler {
     private configService: ConfigService,
   ) {}
 
-
   async handleUserCourseadd(data: any) {
     try {
       //fetch course details
       const courseDetails = await this.getCourseName(data.courseId);
+      if (!courseDetails) {
+        return;
+      }
       const trandFormedData = this.tranformServie.mapContentToCourseEntity(
         courseDetails.result.content,
       );
@@ -28,7 +30,7 @@ export class CourseHandler {
     const trandFormedData = await this.tranformServie.transformCourseData(data);
     return this.dbService.updateUserCourseCertificate(trandFormedData);
   }
-  
+
   //get courseName
   async getCourseName(courseId) {
     const url =
@@ -40,8 +42,11 @@ export class CourseHandler {
     const headers = {
       'Content-Type': 'application/json',
     };
-
-    let contentResponse = await axios.get(url, { headers });
-    return contentResponse.data;
+    try {
+      let contentResponse = await axios.get(url, { headers });
+      return contentResponse.data;
+    } catch (error) {
+      return {};
+    }
   }
 }

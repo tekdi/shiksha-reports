@@ -153,9 +153,6 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
       case 'attendance-topic':
         await this.handleAttendanceEvent(eventType, data);
         break;
-      case 'course-topic':
-        await this.handleCourseEvent(eventType, data);
-        break;
 
       case 'assessment-topic':
         await this.handleAssessmentEvent(eventType, data);
@@ -207,10 +204,10 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
       case 'ATTENDANCE_CREATED':
       case 'ATTENDANCE_UPDATED':
         return this.attendanceHandler.handleAttendanceUpsert(data);
-  
+
       case 'ATTENDANCE_DELETED':
         return this.attendanceHandler.handleAttendanceDelete(data);
-        
+
       default:
         this.logger.warn(`Unhandled attendance eventType: ${eventType}`);
     }
@@ -222,23 +219,15 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
       case 'ASSESSMENT_CREATED':
       case 'ASSESSMENT_UPDATED':
         return this.assessmentHandler.handleAssessmentUpsert(data);
-  
+
       case 'ASSESSMENT_DELETED':
         return this.assessmentHandler.handleAssessmentDelete(data);
-        
-      default:
-        this.logger.warn(`Unhandled assessment eventType: ${eventType}`);
-    }
-  }
-  private async handleCourseEvent(eventType: string, data: any) {
-    this.logger.log(`Handling course-event type: ${eventType}`);
-    switch (eventType) {
       case 'COURSE_ENROLLMENT_CREATED':
         return this.courseHandler.handleUserCourseadd(data);
       case 'COURSE_STATUS_UPDATED':
         return this.courseHandler.handleUserCourseUpdate(data);
       default:
-        this.logger.warn(`Unhandled course eventType: ${eventType}`);
+        this.logger.warn(`Unhandled assessment eventType: ${eventType}`);
     }
   }
 }
