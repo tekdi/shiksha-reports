@@ -57,7 +57,6 @@ export class DatabaseService {
     return this.userCourseRepo.save(data);
   }
   async saveCourse(data: any) {
-    console.log('Saving course data:', data);
     return this.courseRepo.save(data);
   }
   async updateUserCourseCertificate(data: any) {
