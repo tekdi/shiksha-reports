@@ -52,13 +52,20 @@ export class DatabaseService {
   async deleteCohortSummaryData(data: any) {
     return this.cohortRepo.delete(data);
   }
+
+  async updateCohortSummaryData(cohortId: string, data: any) {
+    return this.cohortRepo.update({ cohortId }, data);
+  }
+
   async saveUserCourseCertificate(data: any) {
     console.log('Saving user course certificate data:', data);
     return this.userCourseRepo.save(data);
   }
+
   async saveCourse(data: any) {
     return this.courseRepo.save(data);
   }
+
   async updateUserCourseCertificate(data: any) {
     //update record by where condition of userId and courseId
     console.log('Updating user course certificate data:', data);
