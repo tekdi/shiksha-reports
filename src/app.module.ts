@@ -19,6 +19,7 @@ import { Event } from './entities/event.entity';
 import { EventDetails } from './entities/event-details.entity';
 import { EventRepetition } from './entities/event-repetition.entity';
 import { EventHandler } from './handlers/event.handler';
+import { CohortHandler } from './handlers/cohort.handler';
 
 @Module({
   imports: [
@@ -68,6 +69,7 @@ import { EventHandler } from './handlers/event.handler';
     AttendanceHandler,
     AssessmentHandler,
     EventHandler,
+    CohortHandler,
     TransformService,
   ],
 })
