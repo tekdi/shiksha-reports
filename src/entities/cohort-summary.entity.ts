@@ -14,6 +14,9 @@ export class CohortSummaryReport {
   @Column({ type: 'uuid', nullable: true })
   tenantId: string;
 
+  @Column({ type: 'uuid', nullable: true })
+  parentId: string;
+
   @Column({ type: 'varchar', nullable: true })
   tenantName: string;
 

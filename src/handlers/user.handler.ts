@@ -14,13 +14,4 @@ export class UserHandler {
   async handleUserDelete(data: any) {
     return this.dbService.deleteUserProfileData(data);
   }
-
-  async handleCohortUpsert(data: any) {
-    const trandFormedData = await this.transformService.transformUserData(data);
-    return this.dbService.saveUserProfileData(trandFormedData);
-  }
-
-  async handleCohortDelete(data: any) {
-    return this.dbService.deleteUserProfileData(data);
-  }
 }

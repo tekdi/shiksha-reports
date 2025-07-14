@@ -162,11 +162,12 @@ export class TransformService {
 
       const transformedData: Partial<CohortSummaryReport> = {
         cohortId: data.cohortId,
+        parentId : data .parentId,
         name: data.name,
         type: data.type,
         tenantId: tenant.tenantId || data.tenantId,
         tenantName: tenant.tenantName || data.tenantName,
-        academicYear: data.academicYear,
+        academicYear: data.academicYearId,
         memberCount: data.memberCount ? Number(data.memberCount) : undefined,
         customFields: data.customFields || {},
         createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
