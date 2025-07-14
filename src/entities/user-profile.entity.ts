@@ -1,8 +1,11 @@
-import { Entity, PrimaryColumn, Column } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
 @Entity({ name: 'UserProfileReport' })
 export class UserProfileReport {
-  @PrimaryColumn('uuid')
+  @PrimaryGeneratedColumn('identity')
+  id: number;
+
+  @Column({ type: 'uuid', nullable: false })
   userId: string;
 
   @Column({ type: 'varchar', nullable: true })
@@ -70,4 +73,19 @@ export class UserProfileReport {
 
   @Column({ type: 'varchar', nullable: true })
   village?: string;
+
+  @Column({ type: 'uuid', nullable: true })
+  cohortId?: string;
+
+  @Column({ type: 'text', nullable: true })
+  cohortName?: string;
+
+  @Column({ type: 'uuid', nullable: true })
+  batchId?: string;
+
+  @Column({ type: 'text', nullable: true })
+  batchName?: string;
+
+  @Column({ type: 'text', nullable: true })
+  academicYear?: string;
 }
