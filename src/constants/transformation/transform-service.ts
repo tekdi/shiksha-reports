@@ -19,32 +19,92 @@ export class TransformService {
         data.customFields?.find((f: any) => f.label === label)
           ?.selectedValues?.[0]?.value ?? null;
 
-      const transformedData: Partial<UserProfileReport> = {
-        userId: data.userId,
-        username: data.username,
-        fullName: data.fullName,
-        email: data.email,
-        mobile: data.mobile,
-        dob: data.dob,
-        gender: data.gender,
-        status: data.status,
-        createdAt: data.createdAt ? new Date(data.createdAt) : undefined,
-        updatedAt: data.updatedAt ? new Date(data.updatedAt) : undefined,
-        createdBy: data.createdBy,
-        updatedBy: data.updatedBy,
-        tenantId: tenant.tenantId,
-        tenantName: tenant.tenantName,
-        roleId: tenant.roleId,
-        roleName: tenant.roleName,
-        customFields: data.customFields ?? [],
-        cohorts: data.cohorts ?? [],
-        automaticMember: data.automaticMember ?? false,
-        state: extractField('STATE'),
-        district: extractField('DISTRICT'),
-        block: extractField('BLOCK'),
-        village: extractField('VILLAGE'),
+      // Transform firstName, middleName, lastName into fullName
+      const constructFullName = () => {
+        const firstName = data.firstName?.trim() || '';
+        const middleName = data.middleName?.trim() || '';
+        const lastName = data.lastName?.trim() || '';
+        
+        // Combine names with spaces, filtering out empty strings
+        const nameParts = [firstName, middleName, lastName].filter(part => part.length > 0);
+        return nameParts.length > 0 ? nameParts.join(' ') : (data.fullName || null);
       };
-      return transformedData;
+
+      // Find all active cohorts
+      const activeCohorts = data.cohorts?.filter((cohort: any) => cohort.cohortMemberStatus === 'active') ?? [];
+
+      // If no active cohorts, create one entry with null cohort fields
+      if (activeCohorts.length === 0) {
+        const transformedData: Partial<UserProfileReport> = {
+          userId: data.userId,
+          username: data.username,
+          fullName: constructFullName(),
+          email: data.email,
+          mobile: data.mobile,
+          dob: data.dob,
+          gender: data.gender,
+          status: data.status,
+          createdAt: data.createdAt ? new Date(data.createdAt) : undefined,
+          updatedAt: data.updatedAt ? new Date(data.updatedAt) : undefined,
+          createdBy: data.createdBy,
+          updatedBy: data.updatedBy,
+          tenantId: tenant.tenantId,
+          tenantName: tenant.tenantName,
+          roleId: tenant.roleId,
+          roleName: tenant.roleName,
+          customFields: data.customFields ?? [],
+          cohorts: data.cohorts ?? [],
+          automaticMember: data.automaticMember ?? false,
+          state: extractField('STATE'),
+          district: extractField('DISTRICT'),
+          block: extractField('BLOCK'),
+          village: extractField('VILLAGE'),
+          batchId: null,
+          batchName: null,
+          cohortId: null,
+          cohortName: null,
+          academicYear: null,
+        };
+        return [transformedData];
+      }
+
+      // Create separate entries for each active cohort
+      const transformedDataArray = activeCohorts.map((cohort: any) => {
+        const transformedData: Partial<UserProfileReport> = {
+          userId: data.userId,
+          username: data.username,
+          fullName: constructFullName(),
+          email: data.email,
+          mobile: data.mobile,
+          dob: data.dob,
+          gender: data.gender,
+          status: data.status,
+          createdAt: data.createdAt ? new Date(data.createdAt) : undefined,
+          updatedAt: data.updatedAt ? new Date(data.updatedAt) : undefined,
+          createdBy: data.createdBy,
+          updatedBy: data.updatedBy,
+          tenantId: tenant.tenantId,
+          tenantName: tenant.tenantName,
+          roleId: tenant.roleId,
+          roleName: tenant.roleName,
+          customFields: data.customFields ?? [],
+          cohorts: data.cohorts ?? [],
+          automaticMember: data.automaticMember ?? false,
+          state: extractField('STATE'),
+          district: extractField('DISTRICT'),
+          block: extractField('BLOCK'),
+          village: extractField('VILLAGE'),
+          // Extract cohort-specific fields from the current active cohort
+          batchId: cohort.batchId ?? null,
+          batchName: cohort.batchName ?? null,
+          cohortId: cohort.cohortId ?? null,
+          cohortName: cohort.cohortName ?? null,
+          academicYear: cohort.academicYearSession ?? null,
+        };
+        return transformedData;
+      });
+
+      return transformedDataArray;
     } catch (error) {
       return error;
     }
