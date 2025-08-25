@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { UserProfileReport } from '../entities/user-profile.entity';
+import { User } from '../entities/user.entity';
 import { CohortSummaryReport } from 'src/entities/cohort-summary.entity';
 import { UserCourseCertificate } from 'src/entities/user-course-data.entity';
 import { Course } from 'src/entities/course.entity';
@@ -11,12 +11,16 @@ import { DailyAttendanceReport } from 'src/entities/daily-attendance-report.enti
 import { Event } from 'src/entities/event.entity';
 import { EventDetails } from 'src/entities/event-details.entity';
 import { EventRepetition } from 'src/entities/event-repetition.entity';
+import { CohortMember } from 'src/entities/cohort-member.entity';
+import { Cohort } from 'src/entities/cohort.entity';
+import { AttendanceTracker } from 'src/entities/attendance-tracker.entity';
+import { AssessmentTracker } from 'src/entities/assessment-tracker.entity';
 
 @Injectable()
 export class DatabaseService {
   constructor(
-    @InjectRepository(UserProfileReport)
-    private userRepo: Repository<UserProfileReport>,
+    @InjectRepository(User)
+    private userRepo: Repository<User>,
     @InjectRepository(CohortSummaryReport)
     private cohortRepo: Repository<CohortSummaryReport>,
     @InjectRepository(Course)
@@ -35,6 +39,14 @@ export class DatabaseService {
     private eventDetailsRepo: Repository<EventDetails>,
     @InjectRepository(EventRepetition)
     private eventRepetitionRepo: Repository<EventRepetition>,
+    @InjectRepository(CohortMember)
+    private cohortMemberRepo: Repository<CohortMember>,
+    @InjectRepository(Cohort)
+    private cohortNewRepo: Repository<Cohort>,
+    @InjectRepository(AttendanceTracker)
+    private attendanceTrackerRepo: Repository<AttendanceTracker>,
+    @InjectRepository(AssessmentTracker)
+    private assessmentTrackerRepo: Repository<AssessmentTracker>,
   ) {}
 
   async saveUserProfileData(data: any) {
@@ -107,5 +119,133 @@ export class DatabaseService {
     const { eventDetailId } = data;
     await this.eventRepetitionRepo.delete({ eventDetailId });
     return this.eventDetailsRepo.delete({ eventDetailId });
+  }
+
+  async saveCohortMemberData(data: any) {
+    return this.cohortMemberRepo.save(data);
+  }
+
+  async deleteCohortMemberData(data: any) {
+    return this.cohortMemberRepo.delete(data);
+  }
+
+  async findCohortMember(userId: string, cohortId: string) {
+    return this.cohortMemberRepo.findOne({
+      where: { UserID: userId, CohortID: cohortId }
+    });
+  }
+
+  async updateCohortMemberStatus(userId: string, cohortId: string, status: string) {
+    return this.cohortMemberRepo.update(
+      { UserID: userId, CohortID: cohortId },
+      { MemberStatus: status }
+    );
+  }
+
+  async saveCohortData(data: any) {
+    return this.cohortNewRepo.save(data);
+  }
+
+  async deleteCohortData(data: any) {
+    return this.cohortNewRepo.delete(data);
+  }
+
+  async findCohort(cohortId: string) {
+    return this.cohortNewRepo.findOne({
+      where: { cohortId }
+    });
+  }
+
+  async upsertAttendanceTracker(
+    attendanceData: Partial<AttendanceTracker>,
+    dayColumn: string,
+    attendanceValue: string
+  ) {
+    // Find existing record for the user, tenant, year, and month
+    const existingRecord = await this.attendanceTrackerRepo.findOne({
+      where: {
+        tenantId: attendanceData.tenantId,
+        userId: attendanceData.userId,
+        year: attendanceData.year,
+        month: attendanceData.month,
+        ...(attendanceData.contextId && { contextId: attendanceData.contextId }),
+      }
+    });
+
+    if (existingRecord) {
+      // Update the specific day column
+      const updateData = {
+        [dayColumn]: attendanceValue,
+      };
+      
+      return this.attendanceTrackerRepo.update(existingRecord.atndId, updateData);
+    } else {
+      // Create new record with the day column set
+      const newRecord = {
+        ...attendanceData,
+        [dayColumn]: attendanceValue,
+      };
+      
+      return this.attendanceTrackerRepo.save(newRecord);
+    }
+  }
+
+  async findAttendanceTracker(tenantId: string, userId: string, year: number, month: number, contextId?: string) {
+    const whereCondition: any = {
+      tenantId,
+      userId,
+      year,
+      month,
+    };
+    
+    if (contextId) {
+      whereCondition.contextId = contextId;
+    }
+
+    return this.attendanceTrackerRepo.findOne({
+      where: whereCondition
+    });
+  }
+
+  async saveAttendanceTrackerData(data: any) {
+    return this.attendanceTrackerRepo.save(data);
+  }
+
+  async deleteAttendanceTrackerData(data: any) {
+    return this.attendanceTrackerRepo.delete(data);
+  }
+
+  async saveAssessmentTrackerData(data: any) {
+    return this.assessmentTrackerRepo.save(data);
+  }
+
+  async deleteAssessmentTrackerData(data: any) {
+    return this.assessmentTrackerRepo.delete(data);
+  }
+
+  async findAssessmentTracker(assessTrackingId: string) {
+    return this.assessmentTrackerRepo.findOne({
+      where: { assessTrackingId }
+    });
+  }
+
+  async upsertAssessmentTracker(assessmentData: Partial<AssessmentTracker>) {
+    // Check if assessment already exists
+    const existingAssessment = await this.assessmentTrackerRepo.findOne({
+      where: { 
+        assessTrackingId: assessmentData.assessTrackingId 
+      }
+    });
+
+    if (existingAssessment) {
+      // Update existing assessment
+      return this.assessmentTrackerRepo.update(
+        { assessTrackingId: assessmentData.assessTrackingId },
+        assessmentData
+      );
+    } else {
+      // Create new assessment
+      return this.assessmentTrackerRepo.save(assessmentData);
+    }
   }
 }

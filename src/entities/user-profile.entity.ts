@@ -70,4 +70,92 @@ export class UserProfileReport {
 
   @Column({ type: 'varchar', nullable: true })
   village?: string;
+
+  // Additional custom fields from Kafka message
+  @Column({ type: 'varchar', length: 150, nullable: true })
+  userMotherName?: string;
+
+  @Column({ type: 'varchar', length: 150, nullable: true })
+  userWorkDomain?: string;
+
+  @Column({ type: 'varchar', length: 150, nullable: true })
+  userFatherName?: string;
+
+  @Column({ type: 'varchar', length: 150, nullable: true })
+  userSpouseName?: string;
+
+  @Column({ type: 'varchar', length: 200, nullable: true })
+  userWhatDoYouWantToBecome?: string;
+
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  userClass?: string;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  userPreferredLanguage?: string;
+
+  @Column({ type: 'varchar', length: 20, nullable: true })
+  userParentPhone?: string;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  userGuardianRelation?: string;
+
+  @Column({ type: 'varchar', length: 200, nullable: true })
+  userSubjectTaught?: string;
+
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  userMaritalStatus?: string;
+
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  userGrade?: string;
+
+  @Column({ type: 'boolean', nullable: true })
+  userTrainingCheck?: boolean;
+
+  @Column({ type: 'text', nullable: true })
+  userDropOutReason?: string;
+
+  @Column({ type: 'boolean', nullable: true })
+  userOwnPhoneCheck?: boolean;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  userEnrollmentNumber?: string;
+
+  @Column({ type: 'varchar', length: 150, nullable: true })
+  userDesignation?: string;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  userBoard?: string;
+
+  @Column({ type: 'varchar', length: 150, nullable: true })
+  userSubject?: string;
+
+  @Column({ type: 'varchar', length: 150, nullable: true })
+  userMainSubject?: string;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  userMedium?: string;
+
+  @Column({ type: 'varchar', length: 150, nullable: true })
+  userGuardianName?: string;
+
+  @Column({ type: 'varchar', length: 100, nullable: true })
+  userPreferredModeOfLearning?: string;
+
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  phoneTypeAccessible?: string;
+
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  familyMemberDetails?: string;
+
+  @Column({ type: 'uuid', nullable: true })
+  centerId?: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  firstName?: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  middleName?: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  lastName?: string;
 }

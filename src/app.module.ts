@@ -3,7 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { KafkaConsumerService } from './kafka/kafka-consumer';
 import { DatabaseService } from './services/database.service';
-import { UserProfileReport } from './entities/user-profile.entity';
+import { User } from './entities/user.entity';
 import { UserHandler } from './handlers/user.handler';
 import { TransformService } from './constants/transformation/transform-service';
 import { CohortSummaryReport } from './entities/cohort-summary.entity';
@@ -19,6 +19,10 @@ import { Event } from './entities/event.entity';
 import { EventDetails } from './entities/event-details.entity';
 import { EventRepetition } from './entities/event-repetition.entity';
 import { EventHandler } from './handlers/event.handler';
+import { CohortMember } from './entities/cohort-member.entity';
+import { Cohort } from './entities/cohort.entity';
+import { AttendanceTracker } from './entities/attendance-tracker.entity';
+import { AssessmentTracker } from './entities/assessment-tracker.entity';
 
 @Module({
   imports: [
@@ -46,11 +50,11 @@ import { EventHandler } from './handlers/event.handler';
 
     // Register the entity for repository injection
     TypeOrmModule.forFeature([
-      UserProfileReport,
+      User,
       CohortSummaryReport,
       UserCourseCertificate,
       Course,
-      UserProfileReport,
+      User,
       CohortSummaryReport,
       DailyAttendanceReport,
       AssessmentTracking,
@@ -58,6 +62,10 @@ import { EventHandler } from './handlers/event.handler';
       Event,
       EventDetails,
       EventRepetition,
+      CohortMember,
+      Cohort,
+      AttendanceTracker,
+      AssessmentTracker,
     ]),
   ],
   providers: [

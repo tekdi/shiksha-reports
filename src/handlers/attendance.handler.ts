@@ -11,19 +11,20 @@ export class AttendanceHandler {
 
   async handleAttendanceUpsert(data: any): Promise<any> {
       try {
-        const transformedData = await this.transformService.transformDailyAttendanceData(data);
-        return await this.dbService.saveDailyAttendanceData(transformedData);
+        // Use new AttendanceTracker transformation
+        const { attendanceData, dayColumn, attendanceValue } = await this.transformService.transformAttendanceData(data);
+        return await this.dbService.upsertAttendanceTracker(attendanceData, dayColumn, attendanceValue);
       } catch (error) {
-        // Log error and handle appropriately
+        console.error('Error handling attendance upsert:', error);
         throw error;
       }
   }
 
   async handleAttendanceDelete(data: any): Promise<any> {
       try {
-        return await this.dbService.deleteDailyAttendanceData(data);
+        return await this.dbService.deleteAttendanceTrackerData(data);
       } catch (error) {
-        // Log error and handle appropriately
+        console.error('Error handling attendance delete:', error);
         throw error;
       }
   }
