@@ -50,7 +50,6 @@ import { AssessmentTracker } from './entities/assessment-tracker.entity';
 
     // Register the entity for repository injection
     TypeOrmModule.forFeature([
-      User,
       CohortSummaryReport,
       UserCourseCertificate,
       Course,
