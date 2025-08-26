@@ -15,14 +15,37 @@ export class CourseHandler {
 
   async handleUserCourseadd(data: any) {
     try {
-      //fetch course details
-      const courseDetails = await this.getCourseName(data.courseId);
-      const trandFormedData = this.tranformServie.mapContentToCourseEntity(
-        courseDetails.result.content,
-      );
-      await this.dbService.saveCourse(trandFormedData);
+      // Only save user course certificate data, no need for separate course entity
       return this.dbService.saveUserCourseCertificate(data);
-    } catch (error) {}
+    } catch (error) {
+      console.error('Error handling user course add:', error);
+      throw error;
+    }
+  }
+
+  async handleCourseEnrollmentCreated(data: any) {
+    try {
+      console.log('Course enrollment created:', data);
+      // Fetch course details to get course name
+      const courseDetails = await this.getCourseName(data.courseId);
+      const courseName = courseDetails.result.content.name || 'Unknown Course';
+      
+      // Transform the data for CourseTracker
+      const transformedData = await this.tranformServie.transformCourseTrackerData(data, courseName);
+      
+      // Upsert course tracker data (update if exists, create if not)
+      await this.dbService.upsertCourseTracker(transformedData);
+      
+      console.log('Course enrollment processed successfully:', {
+        userId: data.userId,
+        courseId: data.courseId,
+        status: data.status
+      });
+      
+    } catch (error) {
+      console.error('Error handling course enrollment:', error);
+      throw error;
+    }
   }
   async handleUserCourseUpdate(data: any) {
     const trandFormedData = await this.tranformServie.transformCourseData(data);
@@ -31,6 +54,7 @@ export class CourseHandler {
   
   //get courseName
   async getCourseName(courseId) {
+    // const url = https://dev-interface.prathamdigital.org/interface/v1/api/course/v1/hierarchy/do_214374775354441728134
     const url =
       this.configService.get('MIDDLEWARE_SERVICE_BASE_URL') +
       'api/course/v1/hierarchy/' +

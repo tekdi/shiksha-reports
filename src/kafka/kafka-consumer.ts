@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { Kafka, Consumer, EachMessagePayload } from 'kafkajs';
 import { UserHandler } from '../handlers/user.handler';
 import { CourseHandler } from 'src/handlers/course.handler';
+import { ContentHandler } from 'src/handlers/content.handler';
 import { AttendanceHandler } from '../handlers/attendance.handler';
 import { AssessmentHandler } from '../handlers/assessment.handler';
 import { EventHandler } from 'src/handlers/event.handler';
@@ -22,6 +23,7 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
     private readonly configService: ConfigService,
     private readonly userHandler: UserHandler,
     private readonly courseHandler: CourseHandler,
+    private readonly contentHandler: ContentHandler,
     private readonly attendanceHandler: AttendanceHandler,
     private readonly assessmentHandler: AssessmentHandler,
     private readonly eventHandler: EventHandler,
@@ -133,13 +135,32 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
   private async processEvent(topic: string, event: any) {
     const { eventType, data } = event;
 
+    console.log('=== KAFKA MESSAGE RECEIVED ===');
+    console.log('Topic:', topic);
+    console.log('EventType:', eventType);
+    console.log('Data:', JSON.stringify(data, null, 2));
+    console.log('===============================');
+
     if (!eventType || !data) {
       this.logger.warn(
         `Invalid event received from topic ${topic}: ${JSON.stringify(event)}`,
       );
       return;
     }
-    console.log('souravtopic', topic);
+
+    // Special routing for course enrollment events regardless of topic
+    if (eventType === 'COURSE_ENROLLMENT_CREATED') {
+      console.log('🔀 ROUTING: Course enrollment event detected, routing to course handler');
+      await this.handleCourseEvent(eventType, data);
+      return;
+    }
+
+    // Special routing for content tracking events regardless of topic
+    if (eventType === 'CONTENT_TRACKING_CREATED') {
+      console.log('🔀 ROUTING: Content tracking event detected, routing to content handler');
+      await this.handleContentEvent(eventType, data);
+      return;
+    }
 
     switch (topic) {
       case 'user-topic':
@@ -231,14 +252,35 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
     }
   }
   private async handleCourseEvent(eventType: string, data: any) {
+    console.log(`🎯 [KafkaConsumer] handleCourseEvent called with eventType: ${eventType}`);
+    console.log(`🎯 [KafkaConsumer] Course event data:`, JSON.stringify(data, null, 2));
+    
     this.logger.log(`Handling course-event type: ${eventType}`);
     switch (eventType) {
       case 'COURSE_ENROLLMENT_CREATED':
-        return this.courseHandler.handleUserCourseadd(data);
+        console.log('📞 [KafkaConsumer] Calling courseHandler.handleCourseEnrollmentCreated...');
+        return this.courseHandler.handleCourseEnrollmentCreated(data);
       case 'COURSE_STATUS_UPDATED':
+        console.log('📞 [KafkaConsumer] Calling courseHandler.handleUserCourseUpdate...');
         return this.courseHandler.handleUserCourseUpdate(data);
       default:
+        console.log(`⚠️ [KafkaConsumer] Unhandled course eventType: ${eventType}`);
         this.logger.warn(`Unhandled course eventType: ${eventType}`);
+    }
+  }
+  
+  private async handleContentEvent(eventType: string, data: any) {
+    console.log(`🎯 [KafkaConsumer] handleContentEvent called with eventType: ${eventType}`);
+    console.log(`🎯 [KafkaConsumer] Content event data:`, JSON.stringify(data, null, 2));
+    
+    this.logger.log(`Handling content-event type: ${eventType}`);
+    switch (eventType) {
+      case 'CONTENT_TRACKING_CREATED':
+        console.log('📞 [KafkaConsumer] Calling contentHandler.handleContentTrackingCreated...');
+        return this.contentHandler.handleContentTrackingCreated(data);
+      default:
+        console.log(`⚠️ [KafkaConsumer] Unhandled content eventType: ${eventType}`);
+        this.logger.warn(`Unhandled content eventType: ${eventType}`);
     }
   }
 }

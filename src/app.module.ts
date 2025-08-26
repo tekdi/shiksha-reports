@@ -9,7 +9,7 @@ import { TransformService } from './constants/transformation/transform-service';
 import { CohortSummaryReport } from './entities/cohort-summary.entity';
 import { UserCourseCertificate } from './entities/user-course-data.entity';
 import { CourseHandler } from './handlers/course.handler';
-import { Course } from './entities/course.entity';
+
 import { DailyAttendanceReport } from './entities/daily-attendance-report.entity';
 import { AssessmentTracking } from './entities/assessment-tracking.entity';
 import { AssessmentTrackingScoreDetail } from './entities/assessment-tracking-score-detail.entity';
@@ -23,6 +23,9 @@ import { CohortMember } from './entities/cohort-member.entity';
 import { Cohort } from './entities/cohort.entity';
 import { AttendanceTracker } from './entities/attendance-tracker.entity';
 import { AssessmentTracker } from './entities/assessment-tracker.entity';
+import { CourseTracker } from './entities/course-tracker.entity';
+import { ContentTracker } from './entities/content-tracker.entity';
+import { ContentHandler } from './handlers/content.handler';
 
 @Module({
   imports: [
@@ -52,7 +55,6 @@ import { AssessmentTracker } from './entities/assessment-tracker.entity';
     TypeOrmModule.forFeature([
       CohortSummaryReport,
       UserCourseCertificate,
-      Course,
       User,
       CohortSummaryReport,
       DailyAttendanceReport,
@@ -65,6 +67,8 @@ import { AssessmentTracker } from './entities/assessment-tracker.entity';
       Cohort,
       AttendanceTracker,
       AssessmentTracker,
+      CourseTracker,
+      ContentTracker,
     ]),
   ],
   providers: [
@@ -72,6 +76,7 @@ import { AssessmentTracker } from './entities/assessment-tracker.entity';
     DatabaseService,
     UserHandler,
     CourseHandler,
+    ContentHandler,
     AttendanceHandler,
     AssessmentHandler,
     EventHandler,

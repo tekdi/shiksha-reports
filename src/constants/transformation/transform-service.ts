@@ -3,11 +3,13 @@ import { User } from '../../entities/user.entity';
 import { DailyAttendanceReport } from '../../entities/daily-attendance-report.entity';
 import { AssessmentTracking } from '../../entities/assessment-tracking.entity';
 import { AssessmentTrackingScoreDetail } from '../../entities/assessment-tracking-score-detail.entity';
-import { Course } from 'src/entities/course.entity';
+
 import { CohortMember } from 'src/entities/cohort-member.entity';
 import { Cohort } from 'src/entities/cohort.entity';
 import { AttendanceTracker } from 'src/entities/attendance-tracker.entity';
 import { AssessmentTracker } from 'src/entities/assessment-tracker.entity';
+import { CourseTracker } from 'src/entities/course-tracker.entity';
+import { ContentTracker } from 'src/entities/content-tracker.entity';
 
 @Injectable()
 export class TransformService {
@@ -189,19 +191,6 @@ export class TransformService {
   async transformCourseData(data: any) {
     return data;
   }
-  mapContentToCourseEntity(content: any): Partial<Course> {
-    return {
-      courseDoId: content.identifier,
-      courseName: content.name,
-      channel: content.channel,
-      language: content.language || [],
-      program: content.program || [],
-      primaryUser: content.primaryUser || [],
-      targetAgeGroup: content.targetAgeGroup || [],
-      keywords: content.keywords || [],
-      details: content, // save full original JSON here
-    };
-  }
 
   async transformAttendanceData(data: any): Promise<{
     attendanceData: Partial<AttendanceTracker>;
@@ -280,7 +269,7 @@ export class TransformService {
         timeSpent: parseInt(data.timeSpent) || 0,
         assessmentSummary: JSON.stringify(data.assessmentSummary),
         numOfAttempt: 1,
-        assessmentType: data.assessmentType || 'quiz',
+        assessmentType: data.assessmentType,
       };
 
 
@@ -296,6 +285,75 @@ export class TransformService {
     }
   }
 
+  async transformCourseTrackerData(data: any, courseName: string): Promise<Partial<CourseTracker>> {
+    try {
+      const transformedData: Partial<CourseTracker> = {
+        userId: data.userId,
+        tenantId: data.tenantId,
+        courseId: data.courseId,
+        courseName: courseName,
+        courseTrackingStatus: data.status,
+        certificateId: data.usercertificateId,
+        courseTrackingStartDate: data.createdOn ? new Date(data.createdOn) : undefined,
+        courseTrackingEndDate: data.completedOn ? new Date(data.completedOn) : undefined,
+      };
+
+      return transformedData;
+    } catch (error) {
+      console.error('Error transforming course tracker data:', error);
+      throw error;
+    }
+  }
+
+  async transformContentTrackerData(data: any, contentName: string): Promise<Partial<ContentTracker>> {
+    try {
+      console.log('🔄 [TransformService] transformContentTrackerData called');
+      console.log('🔄 [TransformService] Input data:', JSON.stringify(data, null, 2));
+      console.log('🔄 [TransformService] Content name:', contentName);
+      
+      // Determine content tracking status based on details array
+      let contentTrackingStatus = 'in_progress'; // default
+      let totalTimeSpent = 0;
+      
+      if (data.details && Array.isArray(data.details)) {
+        // Calculate total time spent
+        totalTimeSpent = data.details.reduce((total, detail) => {
+          return total + (detail.duration || 0);
+        }, 0);
+        
+        // Determine status based on eid values
+        const hasStart = data.details.some(detail => detail.eid === 'START');
+        const hasEnd = data.details.some(detail => detail.eid === 'END');
+        
+        if (hasEnd) {
+          contentTrackingStatus = 'completed';
+        } else if (hasStart) {
+          contentTrackingStatus = 'started';
+        }
+      }
+      
+      const transformedData: Partial<ContentTracker> = {
+        contentTrackerId: data.contentTrackingId,
+        userId: data.userId,
+        tenantId: data.tenantId,
+        contentId: data.contentId,
+        courseId: data.courseId,
+        contentName: contentName,
+        contentType: data.contentType,
+        contentTrackingStatus: contentTrackingStatus,
+        timeSpent: Math.round(totalTimeSpent), // Round to nearest integer
+        createdAt: data.createdOn ? new Date(data.createdOn) : new Date(),
+        updatedAt: data.updatedOn ? new Date(data.updatedOn) : new Date(),
+      };
+
+      console.log('🔄 [TransformService] Transformed data:', JSON.stringify(transformedData, null, 2));
+      return transformedData;
+    } catch (error) {
+      console.error('❌ [TransformService] Error transforming content tracker data:', error);
+      console.error('❌ [TransformService] Error stack:', error.stack);
+      throw error;
+    }
+  }
 
   async transformAssessmentScoreData(
     data: any,
