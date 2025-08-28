@@ -17,10 +17,20 @@ export class AssessmentTracking {
   @Column({ name: 'attemptId', nullable: true })
   attemptId: string;
 
-  @Column({ name: 'createdOn', nullable: true, type: 'timestamptz', default: () => 'now()' })
+  @Column({
+    name: 'createdOn',
+    nullable: true,
+    type: 'timestamptz',
+    default: () => 'now()',
+  })
   createdOn: Date;
 
-  @Column({ name: 'lastAttemptedOn', nullable: true, type: 'timestamptz', default: () => 'now()' })
+  @Column({
+    name: 'lastAttemptedOn',
+    nullable: true,
+    type: 'timestamptz',
+    default: () => 'now()',
+  })
   lastAttemptedOn: Date;
 
   @Column({ name: 'assessmentSummary', nullable: true, type: 'jsonb' })
@@ -32,7 +42,12 @@ export class AssessmentTracking {
   @Column({ name: 'totalScore', nullable: true, type: 'float8' })
   totalScore: number;
 
-  @Column({ name: 'updatedOn', nullable: true, type: 'timestamptz', default: () => 'now()' })
+  @Column({
+    name: 'updatedOn',
+    nullable: true,
+    type: 'timestamptz',
+    default: () => 'now()',
+  })
   updatedOn: Date;
 
   @Column({ name: 'timeSpent', nullable: true, type: 'numeric' })
@@ -82,4 +97,4 @@ export class AssessmentTracking {
 
   @Column({ name: 'summaryType', nullable: true })
   summaryType: string;
-} 
+}

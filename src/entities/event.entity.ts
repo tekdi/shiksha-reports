@@ -50,4 +50,4 @@ export class Event {
   @ManyToOne(() => EventDetails)
   @JoinColumn({ name: 'eventDetailId' })
   eventDetails: EventDetails;
-} 
+}

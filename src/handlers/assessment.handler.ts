@@ -2,34 +2,58 @@ import { Injectable } from '@nestjs/common';
 import axios from 'axios';
 import { DatabaseService } from '../services/database.service';
 import { TransformService } from 'src/constants/transformation/transform-service';
+import {
+  AssessmentTrackingData,
+  validateRequired,
+  validateString,
+  ValidationError,
+} from '../types';
 
 @Injectable()
 export class AssessmentHandler {
   constructor(
     private readonly dbService: DatabaseService,
     private readonly transformService: TransformService,
-  ) { }
+  ) {}
 
-  async handleAssessmentUpsert(data: any) {
+  async handleAssessmentUpsert(data: AssessmentTrackingData) {
     try {
+      // Validate required fields
+      validateString(data.assessmentTrackingId, 'assessmentTrackingId');
+      validateString(data.userId, 'userId');
+      validateString(data.tenantId, 'tenantId');
+
       const identifier = data?.courseId; // Adjust key if it's nested elsewhere
 
       if (!identifier) {
         throw new Error('Identifier is required for API call');
       }
-       
-       const apiResponse = await axios.post(
-         process.env.MIDDLEWARE_SERVICE_BASE_URL + 'action/composite/v3/search',
-         {
-           request: {
-             filters: {
-               identifier: [identifier],
-             },
-           },
-         },
-       );
 
-       if (!(apiResponse.data as any)?.result?.QuestionSet?.[0]) {
+      const baseUrl = process.env.MIDDLEWARE_SERVICE_BASE_URL;
+      if (!baseUrl) {
+        throw new Error('MIDDLEWARE_SERVICE_BASE_URL not configured');
+      }
+
+      const url = new URL('action/composite/v3/search', baseUrl);
+
+      const apiResponse = await axios.post(
+        url.toString(),
+        {
+          request: {
+            filters: {
+              identifier: [identifier],
+            },
+          },
+        },
+        {
+          timeout: 10000, // 10 second timeout
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+
+      if (!(apiResponse.data as any)?.result?.QuestionSet?.[0]) {
         throw new Error('Invalid API response structure or empty QuestionSet');
       }
       const externalData = (apiResponse.data as any)?.result?.QuestionSet?.[0];
@@ -39,32 +63,59 @@ export class AssessmentHandler {
         // Add metadata from API with safe access
         assessmentName: externalData?.name || null,
         description: externalData?.description || null,
-        subject: Array.isArray(externalData?.subject) ? externalData.subject[0] : externalData?.subject || null,
+        subject: Array.isArray(externalData?.subject)
+          ? externalData.subject[0]
+          : externalData?.subject || null,
         domain: externalData?.domain || null,
-        subDomain: Array.isArray(externalData?.subDomain) ? externalData.subDomain[0] : externalData?.subDomain || null,
+        subDomain: Array.isArray(externalData?.subDomain)
+          ? externalData.subDomain[0]
+          : externalData?.subDomain || null,
         channel: externalData?.channel || null,
         assessmentType: externalData?.assessmentType || null,
-        program: Array.isArray(externalData?.program) ? externalData.program[0] : externalData?.program || null,
-        targetAgeGroup: Array.isArray(externalData?.targetAgeGroup) ? externalData.targetAgeGroup[0] : externalData?.targetAgeGroup || null,
-        contentLanguage: Array.isArray(externalData?.contentLanguage) ? externalData.contentLanguage[0] : externalData?.contentLanguage || null,
+        program: Array.isArray(externalData?.program)
+          ? externalData.program[0]
+          : externalData?.program || null,
+        targetAgeGroup: Array.isArray(externalData?.targetAgeGroup)
+          ? externalData.targetAgeGroup[0]
+          : externalData?.targetAgeGroup || null,
+        contentLanguage: Array.isArray(externalData?.contentLanguage)
+          ? externalData.contentLanguage[0]
+          : externalData?.contentLanguage || null,
         status: externalData?.status || null,
         framework: externalData?.framework || null,
-        summaryType: externalData?.summaryType || null
+        summaryType: externalData?.summaryType || null,
       };
 
       // Step 2: Transform data using new AssessmentTracker structure
-      const { assessmentData, scoreDetails } = await this.transformService.transformAssessmentTrackerData(enrichedData);
+      const { assessmentData, scoreDetails } =
+        await this.transformService.transformAssessmentTrackerData(
+          enrichedData,
+        );
 
       // Step 3: Save assessment tracker data
       await this.dbService.upsertAssessmentTracker(assessmentData);
-
     } catch (error) {
+      if (error instanceof ValidationError) {
+        console.error(
+          'Validation failed in handleAssessmentUpsert:',
+          error.message,
+        );
+        throw new Error(`Validation failed: ${error.message}`);
+      }
       console.error('Error handling assessment upsert:', error);
       throw error;
     }
   }
 
-  async handleAssessmentDelete(data: any) {
-    return this.dbService.deleteAssessmentTrackerData(data);
+  async handleAssessmentDelete(data: { assessmentTrackingId: string }) {
+    try {
+      validateString(data.assessmentTrackingId, 'assessmentTrackingId');
+      return this.dbService.deleteAssessmentTrackerData(data);
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        throw new Error(`Validation failed: ${error.message}`);
+      }
+      throw error;
+    }
   }
 }

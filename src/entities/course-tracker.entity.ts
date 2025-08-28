@@ -17,13 +17,22 @@ export class CourseTracker {
   @Column({ name: 'CourseName', type: 'varchar', length: 255, nullable: false })
   courseName: string;
 
-  @Column({ name: 'CourseTrackingStatus', type: 'varchar', length: 50, nullable: false })
+  @Column({
+    name: 'CourseTrackingStatus',
+    type: 'varchar',
+    length: 50,
+    nullable: false,
+  })
   courseTrackingStatus: string;
 
   @Column({ name: 'CertificateID', type: 'uuid', nullable: true })
   certificateId?: string;
 
-  @Column({ name: 'CourseTrackingStartDate', type: 'timestamp', nullable: true })
+  @Column({
+    name: 'CourseTrackingStartDate',
+    type: 'timestamp',
+    nullable: true,
+  })
   courseTrackingStartDate?: Date;
 
   @Column({ name: 'CourseTrackingEndDate', type: 'timestamp', nullable: true })

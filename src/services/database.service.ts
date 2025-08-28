@@ -69,13 +69,23 @@ export class DatabaseService {
     return this.cohortRepo.delete(data);
   }
   async saveUserCourseCertificate(data: any) {
-    console.log('Saving user course certificate data:', data);
+    console.log(
+      'Saving user course certificate for user:',
+      data.userId,
+      'course:',
+      data.courseId,
+    );
     return this.userCourseRepo.save(data);
   }
 
   async updateUserCourseCertificate(data: any) {
     //update record by where condition of userId and courseId
-    console.log('Updating user course certificate data:', data);
+    console.log(
+      'Updating user course certificate for user:',
+      data.userId,
+      'course:',
+      data.courseId,
+    );
     const { userId, courseId } = data;
     return this.userCourseRepo.update({ userId, courseId }, { ...data });
   }
@@ -132,14 +142,18 @@ export class DatabaseService {
 
   async findCohortMember(userId: string, cohortId: string) {
     return this.cohortMemberRepo.findOne({
-      where: { UserID: userId, CohortID: cohortId }
+      where: { UserID: userId, CohortID: cohortId },
     });
   }
 
-  async updateCohortMemberStatus(userId: string, cohortId: string, status: string) {
+  async updateCohortMemberStatus(
+    userId: string,
+    cohortId: string,
+    status: string,
+  ) {
     return this.cohortMemberRepo.update(
       { UserID: userId, CohortID: cohortId },
-      { MemberStatus: status }
+      { MemberStatus: status },
     );
   }
 
@@ -153,58 +167,82 @@ export class DatabaseService {
 
   async findCohort(cohortId: string) {
     return this.cohortNewRepo.findOne({
-      where: { cohortId }
+      where: { cohortId },
     });
   }
 
   async upsertAttendanceTracker(
     attendanceData: Partial<AttendanceTracker>,
     dayColumn: string,
-    attendanceValue: string
+    attendanceValue: string,
   ) {
-    // Find existing record for the user, tenant, year, and month
-    const existingRecord = await this.attendanceTrackerRepo.findOne({
-      where: {
-        tenantId: attendanceData.tenantId,
-        userId: attendanceData.userId,
-        year: attendanceData.year,
-        month: attendanceData.month,
-        ...(attendanceData.contextId && { contextId: attendanceData.contextId }),
-      }
-    });
-
-    if (existingRecord) {
-      // Update the specific day column
-      const updateData = {
-        [dayColumn]: attendanceValue,
-      };
-      
-      return this.attendanceTrackerRepo.update(existingRecord.atndId, updateData);
-    } else {
-      // Create new record with the day column set
-      const newRecord = {
+    try {
+      // Use database-level upsert with ON CONFLICT to avoid race conditions
+      const baseRecord = {
         ...attendanceData,
         [dayColumn]: attendanceValue,
       };
-      
-      return this.attendanceTrackerRepo.save(newRecord);
+
+      // Try to insert first, if conflict occurs, update
+      const result = await this.attendanceTrackerRepo
+        .createQueryBuilder()
+        .insert()
+        .into(AttendanceTracker)
+        .values(baseRecord)
+        .orUpdate(
+          [dayColumn],
+          ['tenantId', 'userId', 'year', 'month', 'contextId'],
+        )
+        .execute();
+
+      return result;
+    } catch (error) {
+      // Fallback to the original method if the database doesn't support UPSERT
+      const existingRecord = await this.attendanceTrackerRepo.findOne({
+        where: {
+          tenantId: attendanceData.tenantId,
+          userId: attendanceData.userId,
+          year: attendanceData.year,
+          month: attendanceData.month,
+          ...(attendanceData.contextId && {
+            contextId: attendanceData.contextId,
+          }),
+        },
+      });
+
+      if (existingRecord) {
+        const updateData = { [dayColumn]: attendanceValue };
+        return this.attendanceTrackerRepo.update(
+          existingRecord.atndId,
+          updateData,
+        );
+      } else {
+        const newRecord = { ...attendanceData, [dayColumn]: attendanceValue };
+        return this.attendanceTrackerRepo.save(newRecord);
+      }
     }
   }
 
-  async findAttendanceTracker(tenantId: string, userId: string, year: number, month: number, contextId?: string) {
+  async findAttendanceTracker(
+    tenantId: string,
+    userId: string,
+    year: number,
+    month: number,
+    contextId?: string,
+  ) {
     const whereCondition: any = {
       tenantId,
       userId,
       year,
       month,
     };
-    
+
     if (contextId) {
       whereCondition.contextId = contextId;
     }
 
     return this.attendanceTrackerRepo.findOne({
-      where: whereCondition
+      where: whereCondition,
     });
   }
 
@@ -226,27 +264,46 @@ export class DatabaseService {
 
   async findAssessmentTracker(assessTrackingId: string) {
     return this.assessmentTrackerRepo.findOne({
-      where: { assessTrackingId }
+      where: { assessTrackingId },
     });
   }
 
   async upsertAssessmentTracker(assessmentData: Partial<AssessmentTracker>) {
-    // Check if assessment already exists
-    const existingAssessment = await this.assessmentTrackerRepo.findOne({
-      where: { 
-        assessTrackingId: assessmentData.assessTrackingId 
-      }
-    });
+    try {
+      // Use database-level upsert with ON CONFLICT to avoid race conditions
+      const result = await this.assessmentTrackerRepo
+        .createQueryBuilder()
+        .insert()
+        .into(AssessmentTracker)
+        .values(assessmentData)
+        .orUpdate(
+          [
+            'totalMaxScore',
+            'totalScore',
+            'timeSpent',
+            'assessmentSummary',
+            'numOfAttempt',
+            'assessmentType',
+          ],
+          ['assessTrackingId'],
+        )
+        .execute();
 
-    if (existingAssessment) {
-      // Update existing assessment
-      return this.assessmentTrackerRepo.update(
-        { assessTrackingId: assessmentData.assessTrackingId },
-        assessmentData
-      );
-    } else {
-      // Create new assessment
-      return this.assessmentTrackerRepo.save(assessmentData);
+      return result;
+    } catch (error) {
+      // Fallback to the original method if the database doesn't support UPSERT
+      const existingAssessment = await this.assessmentTrackerRepo.findOne({
+        where: { assessTrackingId: assessmentData.assessTrackingId },
+      });
+
+      if (existingAssessment) {
+        return this.assessmentTrackerRepo.update(
+          { assessTrackingId: assessmentData.assessTrackingId },
+          assessmentData,
+        );
+      } else {
+        return this.assessmentTrackerRepo.save(assessmentData);
+      }
     }
   }
 
@@ -258,105 +315,153 @@ export class DatabaseService {
     return this.courseTrackerRepo.delete(data);
   }
 
-  async findCourseTracker(userId: string, courseId: string, tenantId: string, certificateId: string) {
+  async findCourseTracker(
+    userId: string,
+    courseId: string,
+    tenantId: string,
+    certificateId: string,
+  ) {
     return this.courseTrackerRepo.findOne({
-      where: { 
+      where: {
         userId,
         courseId,
         tenantId,
-        certificateId
-      }
+        certificateId,
+      },
     });
   }
 
   async upsertCourseTracker(courseTrackerData: Partial<CourseTracker>) {
-    // Check if course tracker already exists for the same user, course, tenant, and certificate
-    const existingTracker = await this.courseTrackerRepo.findOne({
-      where: { 
-        userId: courseTrackerData.userId,
-        courseId: courseTrackerData.courseId,
-        tenantId: courseTrackerData.tenantId,
-        certificateId: courseTrackerData.certificateId
-      }
-    });
+    try {
+      // Use database-level upsert with ON CONFLICT to avoid race conditions
+      const result = await this.courseTrackerRepo
+        .createQueryBuilder()
+        .insert()
+        .into(CourseTracker)
+        .values(courseTrackerData)
+        .orUpdate(
+          [
+            'courseName',
+            'courseTrackingStatus',
+            'courseTrackingStartDate',
+            'courseTrackingEndDate',
+          ],
+          ['userId', 'courseId', 'tenantId', 'certificateId'],
+        )
+        .execute();
 
-    if (existingTracker) {
-      // Update existing tracker
-      return this.courseTrackerRepo.update(
-        { 
+      return result;
+    } catch (error) {
+      // Fallback to the original method if the database doesn't support UPSERT
+      const existingTracker = await this.courseTrackerRepo.findOne({
+        where: {
           userId: courseTrackerData.userId,
           courseId: courseTrackerData.courseId,
           tenantId: courseTrackerData.tenantId,
-          certificateId: courseTrackerData.certificateId
+          certificateId: courseTrackerData.certificateId,
         },
-        courseTrackerData
-      );
-    } else {
-      // Create new tracker
-      return this.courseTrackerRepo.save(courseTrackerData);
+      });
+
+      if (existingTracker) {
+        return this.courseTrackerRepo.update(
+          {
+            userId: courseTrackerData.userId,
+            courseId: courseTrackerData.courseId,
+            tenantId: courseTrackerData.tenantId,
+            certificateId: courseTrackerData.certificateId,
+          },
+          courseTrackerData,
+        );
+      } else {
+        return this.courseTrackerRepo.save(courseTrackerData);
+      }
     }
   }
 
   async saveContentTrackerData(data: any) {
-    console.log('💾 [DatabaseService] Saving content tracker data:', JSON.stringify(data, null, 2));
     return this.contentTrackerRepo.save(data);
   }
 
   async deleteContentTrackerData(data: any) {
-    console.log('🗑️ [DatabaseService] Deleting content tracker data:', JSON.stringify(data, null, 2));
     return this.contentTrackerRepo.delete(data);
   }
 
-  async findContentTracker(userId: string, contentId: string, tenantId: string) {
+  async findContentTracker(
+    userId: string,
+    contentId: string,
+    tenantId: string,
+  ) {
     return this.contentTrackerRepo.findOne({
-      where: { 
+      where: {
         userId,
         contentId,
-        tenantId
-      }
+        tenantId,
+      },
     });
   }
 
   async upsertContentTracker(contentTrackerData: Partial<ContentTracker>) {
     try {
-      
-      // Check if content tracker already exists for the same user, content, and tenant
-      
-      const existingTracker = await this.contentTrackerRepo.findOne({
-        where: { 
-          userId: contentTrackerData.userId,
-          contentId: contentTrackerData.contentId,
-          tenantId: contentTrackerData.tenantId
-        }
-      });
+      // Set updatedAt timestamp
+      contentTrackerData.updatedAt = new Date();
 
-      if (existingTracker) {
-        
-        // Only update if status is different or time spent has changed
-        if (existingTracker.contentTrackingStatus !== contentTrackerData.contentTrackingStatus || 
-            existingTracker.timeSpent !== contentTrackerData.timeSpent) {
-                    
-          // Update the updatedAt timestamp
-          contentTrackerData.updatedAt = new Date();
-          
-          const updateResult = await this.contentTrackerRepo.update(
-            { 
-              userId: contentTrackerData.userId,
-              contentId: contentTrackerData.contentId,
-              tenantId: contentTrackerData.tenantId
-            },
-            contentTrackerData
-          );
-          return updateResult;
-        } else {
-          return { affected: 0 };
-        }
-      } else {
-        const saveResult = await this.contentTrackerRepo.save(contentTrackerData);
-        return saveResult;
-      }
+      // Use database-level upsert with ON CONFLICT to avoid race conditions
+      const result = await this.contentTrackerRepo
+        .createQueryBuilder()
+        .insert()
+        .into(ContentTracker)
+        .values(contentTrackerData)
+        .orUpdate(
+          [
+            'contentName',
+            'contentType',
+            'contentTrackingStatus',
+            'timeSpent',
+            'updatedAt',
+          ],
+          ['userId', 'contentId', 'tenantId'],
+        )
+        .execute();
+
+      return result;
     } catch (error) {
-      throw error;
+      // Fallback to the original method if the database doesn't support UPSERT
+      try {
+        const existingTracker = await this.contentTrackerRepo.findOne({
+          where: {
+            userId: contentTrackerData.userId,
+            contentId: contentTrackerData.contentId,
+            tenantId: contentTrackerData.tenantId,
+          },
+        });
+
+        if (existingTracker) {
+          // Only update if status is different or time spent has changed
+          if (
+            existingTracker.contentTrackingStatus !==
+              contentTrackerData.contentTrackingStatus ||
+            existingTracker.timeSpent !== contentTrackerData.timeSpent
+          ) {
+            const updateResult = await this.contentTrackerRepo.update(
+              {
+                userId: contentTrackerData.userId,
+                contentId: contentTrackerData.contentId,
+                tenantId: contentTrackerData.tenantId,
+              },
+              contentTrackerData,
+            );
+            return updateResult;
+          } else {
+            return { affected: 0 };
+          }
+        } else {
+          const saveResult =
+            await this.contentTrackerRepo.save(contentTrackerData);
+          return saveResult;
+        }
+      } catch (fallbackError) {
+        throw fallbackError;
+      }
     }
   }
 }

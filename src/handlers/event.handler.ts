@@ -1,11 +1,41 @@
 import { Injectable } from '@nestjs/common';
 import { DatabaseService } from '../services/database.service';
+import {
+  EventData,
+  validateRequired,
+  validateString,
+  ValidationError,
+} from '../types';
 
 @Injectable()
 export class EventHandler {
   constructor(private readonly dbService: DatabaseService) {}
 
-  async handleEventUpsert(data: any) {
+  async handleEventUpsert(data: EventData) {
+    try {
+      // Validate required fields
+      validateRequired(data.eventDetailsData, 'eventDetailsData');
+      validateRequired(data.eventData, 'eventData');
+      validateRequired(data.eventRepetitionData, 'eventRepetitionData');
+
+      validateString(
+        data.eventDetailsData.eventDetailId,
+        'eventDetailsData.eventDetailId',
+      );
+      validateString(data.eventData.eventId, 'eventData.eventId');
+
+      if (!Array.isArray(data.eventRepetitionData)) {
+        throw new ValidationError(
+          'eventRepetitionData must be an array',
+          'eventRepetitionData',
+        );
+      }
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        throw new Error(`Validation failed: ${error.message}`);
+      }
+      throw error;
+    }
     const eventDetailsData = {
       eventDetailId: data.eventDetailsData.eventDetailId,
       title: data.eventDetailsData.title,
@@ -27,7 +57,8 @@ export class EventHandler {
       metadata: data.eventDetailsData.metadata,
       attendees: data.eventDetailsData.attendees,
     };
-    const savedEventDetails = await this.dbService.saveEventDetailsData(eventDetailsData);
+    const savedEventDetails =
+      await this.dbService.saveEventDetailsData(eventDetailsData);
 
     const eventData = {
       eventId: data.eventData.eventId,
@@ -43,26 +74,35 @@ export class EventHandler {
     };
     const savedEvent = await this.dbService.saveEventData(eventData);
 
-    const eventRepertation = data.eventRepetitionData.map(async (eventRepetitionData) => {
-      const eventRepetitionAllData = {
-        eventRepetitionId: eventRepetitionData.eventRepetitionId,
-        eventId: savedEvent.eventId,
-        eventDetailId: savedEventDetails.eventDetailId,
-        onlineDetails: eventRepetitionData.onlineDetails,
-        startDateTime: eventRepetitionData.startDateTime,
-        endDateTime: eventRepetitionData.endDateTime,
-        createdBy: eventRepetitionData.createdBy,
-        updatedBy: eventRepetitionData.updatedBy,
-        erMetaData: eventRepetitionData.erMetaData,
-      };
-      await this.dbService.saveEventRepetitionData(eventRepetitionAllData);
-    })
+    const eventRepertation = data.eventRepetitionData.map(
+      async (eventRepetitionData) => {
+        const eventRepetitionAllData = {
+          eventRepetitionId: eventRepetitionData.eventRepetitionId,
+          eventId: savedEvent.eventId,
+          eventDetailId: savedEventDetails.eventDetailId,
+          onlineDetails: eventRepetitionData.onlineDetails,
+          startDateTime: eventRepetitionData.startDateTime,
+          endDateTime: eventRepetitionData.endDateTime,
+          createdBy: eventRepetitionData.createdBy,
+          updatedBy: eventRepetitionData.updatedBy,
+          erMetaData: eventRepetitionData.erMetaData,
+        };
+        await this.dbService.saveEventRepetitionData(eventRepetitionAllData);
+      },
+    );
   }
 
-  async handleEventDelete(data: any) {
-    if (!data.eventDetailId) {
-      throw new Error('eventDetailId is required for deletion');
+  async handleEventDelete(data: { eventDetailId: string }) {
+    try {
+      validateString(data.eventDetailId, 'eventDetailId');
+      return this.dbService.deleteEventData({
+        eventDetailId: data.eventDetailId,
+      });
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        throw new Error(`Validation failed: ${error.message}`);
+      }
+      throw error;
     }
-    return this.dbService.deleteEventData({ eventDetailId: data.eventDetailId });
   }
-} 
+}

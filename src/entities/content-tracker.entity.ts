@@ -17,21 +17,44 @@ export class ContentTracker {
   @Column({ name: 'CourseID', type: 'varchar', length: 255, nullable: true })
   courseId?: string;
 
-  @Column({ name: 'ContentName', type: 'varchar', length: 255, nullable: false })
+  @Column({
+    name: 'ContentName',
+    type: 'varchar',
+    length: 255,
+    nullable: false,
+  })
   contentName: string;
 
-  @Column({ name: 'ContentType', type: 'varchar', length: 100, nullable: false })
+  @Column({
+    name: 'ContentType',
+    type: 'varchar',
+    length: 100,
+    nullable: false,
+  })
   contentType: string;
 
-  @Column({ name: 'ContentTrackingStatus', type: 'varchar', length: 50, nullable: false })
+  @Column({
+    name: 'ContentTrackingStatus',
+    type: 'varchar',
+    length: 50,
+    nullable: false,
+  })
   contentTrackingStatus: string;
 
   @Column({ name: 'TimeSpent', type: 'integer', default: 0 })
   timeSpent: number;
 
-  @Column({ name: 'CreatedAt', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  @Column({
+    name: 'CreatedAt',
+    type: 'timestamp',
+    default: () => 'CURRENT_TIMESTAMP',
+  })
   createdAt: Date;
 
-  @Column({ name: 'UpdatedAt', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  @Column({
+    name: 'UpdatedAt',
+    type: 'timestamp',
+    default: () => 'CURRENT_TIMESTAMP',
+  })
   updatedAt: Date;
 }

@@ -3,6 +3,14 @@ import { User } from '../../entities/user.entity';
 import { DailyAttendanceReport } from '../../entities/daily-attendance-report.entity';
 import { AssessmentTracking } from '../../entities/assessment-tracking.entity';
 import { AssessmentTrackingScoreDetail } from '../../entities/assessment-tracking-score-detail.entity';
+import {
+  UserEventData,
+  AttendanceEventData,
+  ContentTrackingData,
+  AssessmentTrackingData,
+  AssessmentScoreData,
+  CourseEnrollmentData,
+} from '../../types';
 
 import { CohortMember } from 'src/entities/cohort-member.entity';
 import { Cohort } from 'src/entities/cohort.entity';
@@ -15,7 +23,7 @@ import { ContentTracker } from 'src/entities/content-tracker.entity';
 export class TransformService {
   constructor() {}
 
-  async transformUserData(data: any) {
+  async transformUserData(data: UserEventData) {
     try {
       const tenant = data.tenantData?.[0] ?? {};
 
@@ -24,23 +32,31 @@ export class TransformService {
         if (!data.customFields || !Array.isArray(data.customFields)) {
           return null;
         }
-        
+
         const field = data.customFields.find((f: any) => f.label === label);
 
-        if (!field || !field.selectedValues || !Array.isArray(field.selectedValues) || field.selectedValues.length === 0) {
+        if (
+          !field ||
+          !field.selectedValues ||
+          !Array.isArray(field.selectedValues) ||
+          field.selectedValues.length === 0
+        ) {
           return null;
         }
-        
+
         const selectedValue = field.selectedValues[0];
-        
+
         // Handle different types of selectedValues
         if (typeof selectedValue === 'string') {
           return selectedValue;
-        } else if (typeof selectedValue === 'object' && selectedValue !== null) {
+        } else if (
+          typeof selectedValue === 'object' &&
+          selectedValue !== null
+        ) {
           // Return the 'value' property if it exists, otherwise 'id'
           return selectedValue.id || null;
         }
-        
+
         return null;
       };
 
@@ -60,7 +76,8 @@ export class TransformService {
         // Basic user fields - mapping to entity property names (not column names)
         userId: data.userId,
         username: data.username,
-        fullName: `${data.firstName || ''} ${data.middleName ? data.middleName + ' ' : ''}${data.lastName || ''}`.trim(),
+        fullName:
+          `${data.firstName || ''} ${data.middleName ? data.middleName + ' ' : ''}${data.lastName || ''}`.trim(),
         email: data.email,
         mobile: data.mobile?.toString(),
         dob: data.dob,
@@ -83,20 +100,30 @@ export class TransformService {
         userGuardianName: extractCustomField('NAME_OF_GUARDIAN'),
         userGuardianRelation: extractCustomField('RELATION_WITH_GUARDIAN'),
         userParentPhone: extractCustomField('PARENT_GUARDIAN_PHONE_NO'),
-        userClass: extractCustomField('HIGHEST_EDCATIONAL_QUALIFICATION_OR_LAST_PASSED_GRADE'),
+        userClass: extractCustomField(
+          'HIGHEST_EDCATIONAL_QUALIFICATION_OR_LAST_PASSED_GRADE',
+        ),
         userMaritalStatus: extractCustomField('MARITAL_STATUS'),
-        userWhatDoYouWantToBecome: extractCustomField('WHAT_DO_YOU_WANT_TO_BECOME'),
-        userDropOutReason: extractCustomField('REASON_FOR_DROP_OUT_FROM_SCHOOL'),
+        userWhatDoYouWantToBecome: extractCustomField(
+          'WHAT_DO_YOU_WANT_TO_BECOME',
+        ),
+        userDropOutReason: extractCustomField(
+          'REASON_FOR_DROP_OUT_FROM_SCHOOL',
+        ),
         userWorkDomain: extractCustomField('WHAT_IS_YOUR_PRIMARY_WORK'),
-        preferredModeOfLearning: extractCustomField('WHAT_IS_YOUR_PREFERRED_MODE_OF_LEARNING'),
-        
+        preferredModeOfLearning: extractCustomField(
+          'WHAT_IS_YOUR_PREFERRED_MODE_OF_LEARNING',
+        ),
+
         // Additional fields from new structure
         centerId: extractCustomField('CENTER'),
         phoneTypeAccessible: extractCustomField('TYPE_OF_PHONE_ACCESSIBLE'),
         familyMemberDetails: extractCustomField('FAMILY_MEMBER_DETAILS'),
-        
+
         // Boolean fields
-        userOwnPhoneCheck: convertToBoolean(extractCustomField('DOES_THIS_PHONE_BELONG_TO_YOU')),
+        userOwnPhoneCheck: convertToBoolean(
+          extractCustomField('DOES_THIS_PHONE_BELONG_TO_YOU'),
+        ),
       };
 
       return transformedData;
@@ -106,7 +133,9 @@ export class TransformService {
     }
   }
 
-  async transformCohortMemberData(data: any): Promise<Partial<CohortMember>[]> {
+  async transformCohortMemberData(
+    data: UserEventData,
+  ): Promise<Partial<CohortMember>[]> {
     try {
       const userId = data.userId;
       const cohortMembers: Partial<CohortMember>[] = [];
@@ -137,22 +166,30 @@ export class TransformService {
         if (!data.customFields || !Array.isArray(data.customFields)) {
           return null;
         }
-        
+
         const field = data.customFields.find((f: any) => f.label === label);
-        if (!field || !field.selectedValues || !Array.isArray(field.selectedValues) || field.selectedValues.length === 0) {
+        if (
+          !field ||
+          !field.selectedValues ||
+          !Array.isArray(field.selectedValues) ||
+          field.selectedValues.length === 0
+        ) {
           return null;
         }
-        
+
         const selectedValue = field.selectedValues[0];
-        
+
         // Handle different types of selectedValues
         if (typeof selectedValue === 'string') {
           return selectedValue;
-        } else if (typeof selectedValue === 'object' && selectedValue !== null) {
+        } else if (
+          typeof selectedValue === 'object' &&
+          selectedValue !== null
+        ) {
           // Return the 'id' property for cohort fields
           return selectedValue.id || null;
         }
-        
+
         return null;
       };
 
@@ -178,7 +215,7 @@ export class TransformService {
 
         // Additional fields
         coGoogleMapLink: extractCustomField('GOOGLE_MAP_LINK'),
-        coIndustry: extractCustomField('INDUSTRY')
+        coIndustry: extractCustomField('INDUSTRY'),
       };
 
       return transformedData;
@@ -188,11 +225,11 @@ export class TransformService {
     }
   }
 
-  async transformCourseData(data: any) {
+  async transformCourseData(data: CourseEnrollmentData) {
     return data;
   }
 
-  async transformAttendanceData(data: any): Promise<{
+  async transformAttendanceData(data: AttendanceEventData): Promise<{
     attendanceData: Partial<AttendanceTracker>;
     dayColumn: string;
     attendanceValue: string;
@@ -203,10 +240,10 @@ export class TransformService {
       const year = attendanceDate.getFullYear();
       const month = attendanceDate.getMonth() + 1; // getMonth() returns 0-11
       const day = attendanceDate.getDate();
-      
+
       // Format day as two-digit string for column mapping
       const dayColumn = `day${day.toString().padStart(2, '0')}`;
-      
+
       const transformedData: Partial<AttendanceTracker> = {
         tenantId: data.tenantId,
         context: data.context,
@@ -228,7 +265,7 @@ export class TransformService {
   }
 
   // Keep the old method for backward compatibility if needed
-  async transformDailyAttendanceData(data: any) {
+  async transformDailyAttendanceData(data: AttendanceEventData) {
     try {
       const transformedData: Partial<DailyAttendanceReport> = {
         attendanceId: data.attendanceId,
@@ -250,9 +287,9 @@ export class TransformService {
     }
   }
 
-  async transformAssessmentTrackerData(data: any): Promise<{
+  async transformAssessmentTrackerData(data: AssessmentTrackingData): Promise<{
     assessmentData: Partial<AssessmentTracker>;
-    scoreDetails: any[];
+    scoreDetails: AssessmentScoreData[];
   }> {
     try {
       // Debug the incoming data to identify which field has the problematic value
@@ -266,12 +303,11 @@ export class TransformService {
         tenantId: data.tenantId,
         totalMaxScore: data.totalMaxScore || 0,
         totalScore: data.totalScore || 0,
-        timeSpent: parseInt(data.timeSpent) || 0,
+        timeSpent: parseInt(String(data.timeSpent)) || 0,
         assessmentSummary: JSON.stringify(data.assessmentSummary),
         numOfAttempt: 1,
         assessmentType: data.assessmentType,
       };
-
 
       const scoreDetails = data.scores || [];
 
@@ -285,7 +321,10 @@ export class TransformService {
     }
   }
 
-  async transformCourseTrackerData(data: any, courseName: string): Promise<Partial<CourseTracker>> {
+  async transformCourseTrackerData(
+    data: any,
+    courseName: string,
+  ): Promise<Partial<CourseTracker>> {
     try {
       const transformedData: Partial<CourseTracker> = {
         userId: data.userId,
@@ -294,8 +333,12 @@ export class TransformService {
         courseName: courseName,
         courseTrackingStatus: data.status,
         certificateId: data.usercertificateId,
-        courseTrackingStartDate: data.createdOn ? new Date(data.createdOn) : undefined,
-        courseTrackingEndDate: data.completedOn ? new Date(data.completedOn) : undefined,
+        courseTrackingStartDate: data.createdOn
+          ? new Date(data.createdOn)
+          : undefined,
+        courseTrackingEndDate: data.completedOn
+          ? new Date(data.completedOn)
+          : undefined,
       };
 
       return transformedData;
@@ -305,33 +348,32 @@ export class TransformService {
     }
   }
 
-  async transformContentTrackerData(data: any, contentName: string): Promise<Partial<ContentTracker>> {
+  async transformContentTrackerData(
+    data: any,
+    contentName: string,
+  ): Promise<Partial<ContentTracker>> {
     try {
-      console.log('🔄 [TransformService] transformContentTrackerData called');
-      console.log('🔄 [TransformService] Input data:', JSON.stringify(data, null, 2));
-      console.log('🔄 [TransformService] Content name:', contentName);
-      
       // Determine content tracking status based on details array
       let contentTrackingStatus = 'in_progress'; // default
       let totalTimeSpent = 0;
-      
+
       if (data.details && Array.isArray(data.details)) {
         // Calculate total time spent
         totalTimeSpent = data.details.reduce((total, detail) => {
           return total + (detail.duration || 0);
         }, 0);
-        
+
         // Determine status based on eid values
-        const hasStart = data.details.some(detail => detail.eid === 'START');
-        const hasEnd = data.details.some(detail => detail.eid === 'END');
-        
+        const hasStart = data.details.some((detail) => detail.eid === 'START');
+        const hasEnd = data.details.some((detail) => detail.eid === 'END');
+
         if (hasEnd) {
           contentTrackingStatus = 'completed';
         } else if (hasStart) {
           contentTrackingStatus = 'started';
         }
       }
-      
+
       const transformedData: Partial<ContentTracker> = {
         contentTrackerId: data.contentTrackingId,
         userId: data.userId,
@@ -346,17 +388,14 @@ export class TransformService {
         updatedAt: data.updatedOn ? new Date(data.updatedOn) : new Date(),
       };
 
-      console.log('🔄 [TransformService] Transformed data:', JSON.stringify(transformedData, null, 2));
       return transformedData;
     } catch (error) {
-      console.error('❌ [TransformService] Error transforming content tracker data:', error);
-      console.error('❌ [TransformService] Error stack:', error.stack);
       throw error;
     }
   }
 
   async transformAssessmentScoreData(
-    data: any,
+    data: AssessmentScoreData,
   ): Promise<Partial<AssessmentTrackingScoreDetail>> {
     try {
       const transformedData: Partial<AssessmentTrackingScoreDetail> = {

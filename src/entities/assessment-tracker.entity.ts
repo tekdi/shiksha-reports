@@ -20,10 +20,22 @@ export class AssessmentTracker {
   @Column({ name: 'TenantID', type: 'uuid', nullable: true })
   tenantId?: string;
 
-  @Column({ name: 'TotalMaxScore', type: 'numeric', precision: 10, scale: 2, nullable: false })
+  @Column({
+    name: 'TotalMaxScore',
+    type: 'numeric',
+    precision: 10,
+    scale: 2,
+    nullable: false,
+  })
   totalMaxScore: number;
 
-  @Column({ name: 'TotalScore', type: 'numeric', precision: 10, scale: 2, nullable: false })
+  @Column({
+    name: 'TotalScore',
+    type: 'numeric',
+    precision: 10,
+    scale: 2,
+    nullable: false,
+  })
   totalScore: number;
 
   @Column({ name: 'TimeSpent', type: 'int4', nullable: true, default: 0 })
@@ -35,6 +47,11 @@ export class AssessmentTracker {
   @Column({ name: 'NumOfAttempt', type: 'int4', nullable: true, default: 0 })
   numOfAttempt?: number;
 
-  @Column({ name: 'AssessmentType', type: 'varchar', length: 50, nullable: false })
+  @Column({
+    name: 'AssessmentType',
+    type: 'varchar',
+    length: 50,
+    nullable: false,
+  })
   assessmentType: string;
 }

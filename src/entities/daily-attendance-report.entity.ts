@@ -34,4 +34,4 @@ export class DailyAttendanceReport {
 
   @Column({ type: 'uuid', nullable: true })
   updatedBy?: string;
-} 
+}

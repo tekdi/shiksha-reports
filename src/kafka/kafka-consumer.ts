@@ -135,29 +135,21 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
   private async processEvent(topic: string, event: any) {
     const { eventType, data } = event;
 
-    console.log('=== KAFKA MESSAGE RECEIVED ===');
-    console.log('Topic:', topic);
-    console.log('EventType:', eventType);
-    console.log('Data:', JSON.stringify(data, null, 2));
-    console.log('===============================');
-
     if (!eventType || !data) {
       this.logger.warn(
-        `Invalid event received from topic ${topic}: ${JSON.stringify(event)}`,
+        `Invalid event received from topic ${topic}. EventType: ${eventType}, Data present: ${!!data}`,
       );
       return;
     }
 
     // Special routing for course enrollment events regardless of topic
     if (eventType === 'COURSE_ENROLLMENT_CREATED') {
-      console.log('🔀 ROUTING: Course enrollment event detected, routing to course handler');
       await this.handleCourseEvent(eventType, data);
       return;
     }
 
     // Special routing for content tracking events regardless of topic
     if (eventType === 'CONTENT_TRACKING_CREATED') {
-      console.log('🔀 ROUTING: Content tracking event detected, routing to content handler');
       await this.handleContentEvent(eventType, data);
       return;
     }
@@ -228,10 +220,10 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
       case 'ATTENDANCE_CREATED':
       case 'ATTENDANCE_UPDATED':
         return this.attendanceHandler.handleAttendanceUpsert(data);
-  
+
       case 'ATTENDANCE_DELETED':
         return this.attendanceHandler.handleAttendanceDelete(data);
-        
+
       default:
         this.logger.warn(`Unhandled attendance eventType: ${eventType}`);
     }
@@ -243,43 +235,32 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
       case 'ASSESSMENT_CREATED':
       case 'ASSESSMENT_UPDATED':
         return this.assessmentHandler.handleAssessmentUpsert(data);
-  
+
       case 'ASSESSMENT_DELETED':
         return this.assessmentHandler.handleAssessmentDelete(data);
-        
+
       default:
         this.logger.warn(`Unhandled assessment eventType: ${eventType}`);
     }
   }
   private async handleCourseEvent(eventType: string, data: any) {
-    console.log(`🎯 [KafkaConsumer] handleCourseEvent called with eventType: ${eventType}`);
-    console.log(`🎯 [KafkaConsumer] Course event data:`, JSON.stringify(data, null, 2));
-    
     this.logger.log(`Handling course-event type: ${eventType}`);
     switch (eventType) {
       case 'COURSE_ENROLLMENT_CREATED':
-        console.log('📞 [KafkaConsumer] Calling courseHandler.handleCourseEnrollmentCreated...');
         return this.courseHandler.handleCourseEnrollmentCreated(data);
       case 'COURSE_STATUS_UPDATED':
-        console.log('📞 [KafkaConsumer] Calling courseHandler.handleUserCourseUpdate...');
         return this.courseHandler.handleUserCourseUpdate(data);
       default:
-        console.log(`⚠️ [KafkaConsumer] Unhandled course eventType: ${eventType}`);
         this.logger.warn(`Unhandled course eventType: ${eventType}`);
     }
   }
-  
+
   private async handleContentEvent(eventType: string, data: any) {
-    console.log(`🎯 [KafkaConsumer] handleContentEvent called with eventType: ${eventType}`);
-    console.log(`🎯 [KafkaConsumer] Content event data:`, JSON.stringify(data, null, 2));
-    
     this.logger.log(`Handling content-event type: ${eventType}`);
     switch (eventType) {
       case 'CONTENT_TRACKING_CREATED':
-        console.log('📞 [KafkaConsumer] Calling contentHandler.handleContentTrackingCreated...');
         return this.contentHandler.handleContentTrackingCreated(data);
       default:
-        console.log(`⚠️ [KafkaConsumer] Unhandled content eventType: ${eventType}`);
         this.logger.warn(`Unhandled content eventType: ${eventType}`);
     }
   }

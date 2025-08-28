@@ -11,7 +11,12 @@ export class Cohort {
   @Column({ name: 'CohortName', type: 'text', nullable: true })
   cohortName?: string;
 
-  @Column({ name: 'CreatedOn', type: 'timestamp', nullable: true, default: () => 'CURRENT_TIMESTAMP' })
+  @Column({
+    name: 'CreatedOn',
+    type: 'timestamp',
+    nullable: true,
+    default: () => 'CURRENT_TIMESTAMP',
+  })
   createdOn?: Date;
 
   @Column({ name: 'ParentID', type: 'uuid', nullable: true })
