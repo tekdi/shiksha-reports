@@ -68,6 +68,11 @@ export class DatabaseService {
   async deleteCohortSummaryData(data: any) {
     return this.cohortRepo.delete(data);
   }
+
+  async updateCohortSummaryData(cohortId: string, data: any) {
+    return this.cohortRepo.update({ cohortId }, data);
+  }
+
   async saveUserCourseCertificate(data: any) {
     console.log(
       'Saving user course certificate for user:',

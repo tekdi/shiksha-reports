@@ -14,6 +14,7 @@ import {
 
 import { CohortMember } from 'src/entities/cohort-member.entity';
 import { Cohort } from 'src/entities/cohort.entity';
+import { CohortSummaryReport } from 'src/entities/cohort-summary.entity';
 import { AttendanceTracker } from 'src/entities/attendance-tracker.entity';
 import { AssessmentTracker } from 'src/entities/assessment-tracker.entity';
 import { CourseTracker } from 'src/entities/course-tracker.entity';
@@ -414,6 +415,39 @@ export class TransformService {
       return transformedData;
     } catch (error) {
       console.error('Error transforming assessment score data:', error);
+      throw error;
+    }
+  }
+
+  async transformCohortSummaryData(data: any): Promise<Partial<CohortSummaryReport>> {
+    try {
+      const tenant = data.tenantData?.[0] ?? {};
+
+      // Extract custom field values for SDBV data
+      const extractField = (label: string) =>
+        data.customFields?.find((f: any) => f.label === label)
+          ?.selectedValues?.[0]?.value ?? null;
+
+      const transformedData: Partial<CohortSummaryReport> = {
+        cohortId: data.cohortId,
+        parentId: data.parentId,
+        name: data.name,
+        type: data.type,
+        tenantId: tenant.tenantId || data.tenantId,
+        tenantName: tenant.tenantName || data.tenantName,
+        academicYear: data.academicYearId,
+        memberCount: data.memberCount ? Number(data.memberCount) : undefined,
+        customFields: data.customFields || {},
+        createdAt: data.createdAt ? new Date(data.createdAt) : new Date(),
+        updatedAt: data.updatedAt ? new Date(data.updatedAt) : new Date(),
+        state: extractField('STATE') || data.state,
+        district: extractField('DISTRICT') || data.district,
+        block: extractField('BLOCK') || data.block,
+        village: extractField('VILLAGE') || data.village,
+      };
+      return transformedData;
+    } catch (error) {
+      console.error('Error transforming cohort data:', error);
       throw error;
     }
   }
