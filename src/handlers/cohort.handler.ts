@@ -11,7 +11,7 @@ export class CohortHandler {
 
   async handleCohortUpsert(data: any) {
     try {
-      const transformedData = await this.transformService.transformCohortData(data);
+      const transformedData = await this.transformService.transformCohortSummaryData(data);
       return this.dbService.saveCohortSummaryData(transformedData);
     } catch (error) {
       console.error('Error handling cohort upsert:', error);
@@ -30,7 +30,7 @@ export class CohortHandler {
 
   async handleCohortUpdate(data: any) {
     try {
-      const transformedData = await this.transformService.transformCohortData(data);
+      const transformedData = await this.transformService.transformCohortSummaryData(data);
       // For update, we need to use the cohortId as the identifier
       const { cohortId, ...updateData } = transformedData;
       return this.dbService.updateCohortSummaryData(cohortId, updateData);

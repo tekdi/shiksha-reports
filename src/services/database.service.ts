@@ -1,26 +1,30 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { UserProfileReport } from '../entities/user-profile.entity';
+import { User } from '../entities/user.entity';
 import { CohortSummaryReport } from 'src/entities/cohort-summary.entity';
 import { UserCourseCertificate } from 'src/entities/user-course-data.entity';
-import { Course } from 'src/entities/course.entity';
+
 import { AssessmentTrackingScoreDetail } from 'src/entities/assessment-tracking-score-detail.entity';
 import { AssessmentTracking } from 'src/entities/assessment-tracking.entity';
 import { DailyAttendanceReport } from 'src/entities/daily-attendance-report.entity';
 import { Event } from 'src/entities/event.entity';
 import { EventDetails } from 'src/entities/event-details.entity';
 import { EventRepetition } from 'src/entities/event-repetition.entity';
+import { CohortMember } from 'src/entities/cohort-member.entity';
+import { Cohort } from 'src/entities/cohort.entity';
+import { AttendanceTracker } from 'src/entities/attendance-tracker.entity';
+import { AssessmentTracker } from 'src/entities/assessment-tracker.entity';
+import { CourseTracker } from 'src/entities/course-tracker.entity';
+import { ContentTracker } from 'src/entities/content-tracker.entity';
 
 @Injectable()
 export class DatabaseService {
   constructor(
-    @InjectRepository(UserProfileReport)
-    private userRepo: Repository<UserProfileReport>,
+    @InjectRepository(User)
+    private userRepo: Repository<User>,
     @InjectRepository(CohortSummaryReport)
     private cohortRepo: Repository<CohortSummaryReport>,
-    @InjectRepository(Course)
-    private courseRepo: Repository<Course>,
     @InjectRepository(UserCourseCertificate)
     private userCourseRepo: Repository<UserCourseCertificate>,
     @InjectRepository(DailyAttendanceReport)
@@ -35,6 +39,18 @@ export class DatabaseService {
     private eventDetailsRepo: Repository<EventDetails>,
     @InjectRepository(EventRepetition)
     private eventRepetitionRepo: Repository<EventRepetition>,
+    @InjectRepository(CohortMember)
+    private cohortMemberRepo: Repository<CohortMember>,
+    @InjectRepository(Cohort)
+    private cohortNewRepo: Repository<Cohort>,
+    @InjectRepository(AttendanceTracker)
+    private attendanceTrackerRepo: Repository<AttendanceTracker>,
+    @InjectRepository(AssessmentTracker)
+    private assessmentTrackerRepo: Repository<AssessmentTracker>,
+    @InjectRepository(CourseTracker)
+    private courseTrackerRepo: Repository<CourseTracker>,
+    @InjectRepository(ContentTracker)
+    private contentTrackerRepo: Repository<ContentTracker>,
   ) {}
 
   async saveUserProfileData(data: any) {
@@ -58,17 +74,23 @@ export class DatabaseService {
   }
 
   async saveUserCourseCertificate(data: any) {
-    console.log('Saving user course certificate data:', data);
+    console.log(
+      'Saving user course certificate for user:',
+      data.userId,
+      'course:',
+      data.courseId,
+    );
     return this.userCourseRepo.save(data);
-  }
-
-  async saveCourse(data: any) {
-    return this.courseRepo.save(data);
   }
 
   async updateUserCourseCertificate(data: any) {
     //update record by where condition of userId and courseId
-    console.log('Updating user course certificate data:', data);
+    console.log(
+      'Updating user course certificate for user:',
+      data.userId,
+      'course:',
+      data.courseId,
+    );
     const { userId, courseId } = data;
     return this.userCourseRepo.update({ userId, courseId }, { ...data });
   }
@@ -113,5 +135,338 @@ export class DatabaseService {
     const { eventDetailId } = data;
     await this.eventRepetitionRepo.delete({ eventDetailId });
     return this.eventDetailsRepo.delete({ eventDetailId });
+  }
+
+  async saveCohortMemberData(data: any) {
+    return this.cohortMemberRepo.save(data);
+  }
+
+  async deleteCohortMemberData(data: any) {
+    return this.cohortMemberRepo.delete(data);
+  }
+
+  async findCohortMember(userId: string, cohortId: string) {
+    return this.cohortMemberRepo.findOne({
+      where: { UserID: userId, CohortID: cohortId },
+    });
+  }
+
+  async updateCohortMemberStatus(
+    userId: string,
+    cohortId: string,
+    status: string,
+  ) {
+    return this.cohortMemberRepo.update(
+      { UserID: userId, CohortID: cohortId },
+      { MemberStatus: status },
+    );
+  }
+
+  async saveCohortData(data: any) {
+    return this.cohortNewRepo.save(data);
+  }
+
+  async deleteCohortData(data: any) {
+    return this.cohortNewRepo.delete(data);
+  }
+
+  async findCohort(cohortId: string) {
+    return this.cohortNewRepo.findOne({
+      where: { cohortId },
+    });
+  }
+
+  async upsertAttendanceTracker(
+    attendanceData: Partial<AttendanceTracker>,
+    dayColumn: string,
+    attendanceValue: string,
+  ) {
+    try {
+      // Use database-level upsert with ON CONFLICT to avoid race conditions
+      const baseRecord = {
+        ...attendanceData,
+        [dayColumn]: attendanceValue,
+      };
+
+      // Try to insert first, if conflict occurs, update
+      const result = await this.attendanceTrackerRepo
+        .createQueryBuilder()
+        .insert()
+        .into(AttendanceTracker)
+        .values(baseRecord)
+        .orUpdate(
+          [dayColumn],
+          ['tenantId', 'userId', 'year', 'month', 'contextId'],
+        )
+        .execute();
+
+      return result;
+    } catch (error) {
+      // Fallback to the original method if the database doesn't support UPSERT
+      const existingRecord = await this.attendanceTrackerRepo.findOne({
+        where: {
+          tenantId: attendanceData.tenantId,
+          userId: attendanceData.userId,
+          year: attendanceData.year,
+          month: attendanceData.month,
+          ...(attendanceData.contextId && {
+            contextId: attendanceData.contextId,
+          }),
+        },
+      });
+
+      if (existingRecord) {
+        const updateData = { [dayColumn]: attendanceValue };
+        return this.attendanceTrackerRepo.update(
+          existingRecord.atndId,
+          updateData,
+        );
+      } else {
+        const newRecord = { ...attendanceData, [dayColumn]: attendanceValue };
+        return this.attendanceTrackerRepo.save(newRecord);
+      }
+    }
+  }
+
+  async findAttendanceTracker(
+    tenantId: string,
+    userId: string,
+    year: number,
+    month: number,
+    contextId?: string,
+  ) {
+    const whereCondition: any = {
+      tenantId,
+      userId,
+      year,
+      month,
+    };
+
+    if (contextId) {
+      whereCondition.contextId = contextId;
+    }
+
+    return this.attendanceTrackerRepo.findOne({
+      where: whereCondition,
+    });
+  }
+
+  async saveAttendanceTrackerData(data: any) {
+    return this.attendanceTrackerRepo.save(data);
+  }
+
+  async deleteAttendanceTrackerData(data: any) {
+    return this.attendanceTrackerRepo.delete(data);
+  }
+
+  async saveAssessmentTrackerData(data: any) {
+    return this.assessmentTrackerRepo.save(data);
+  }
+
+  async deleteAssessmentTrackerData(data: any) {
+    return this.assessmentTrackerRepo.delete(data);
+  }
+
+  async findAssessmentTracker(assessTrackingId: string) {
+    return this.assessmentTrackerRepo.findOne({
+      where: { assessTrackingId },
+    });
+  }
+
+  async upsertAssessmentTracker(assessmentData: Partial<AssessmentTracker>) {
+    try {
+      // Use database-level upsert with ON CONFLICT to avoid race conditions
+      const result = await this.assessmentTrackerRepo
+        .createQueryBuilder()
+        .insert()
+        .into(AssessmentTracker)
+        .values(assessmentData)
+        .orUpdate(
+          [
+            'totalMaxScore',
+            'totalScore',
+            'timeSpent',
+            'assessmentSummary',
+            'numOfAttempt',
+            'assessmentType',
+          ],
+          ['assessTrackingId'],
+        )
+        .execute();
+
+      return result;
+    } catch (error) {
+      // Fallback to the original method if the database doesn't support UPSERT
+      const existingAssessment = await this.assessmentTrackerRepo.findOne({
+        where: { assessTrackingId: assessmentData.assessTrackingId },
+      });
+
+      if (existingAssessment) {
+        return this.assessmentTrackerRepo.update(
+          { assessTrackingId: assessmentData.assessTrackingId },
+          assessmentData,
+        );
+      } else {
+        return this.assessmentTrackerRepo.save(assessmentData);
+      }
+    }
+  }
+
+  async saveCourseTrackerData(data: any) {
+    return this.courseTrackerRepo.save(data);
+  }
+
+  async deleteCourseTrackerData(data: any) {
+    return this.courseTrackerRepo.delete(data);
+  }
+
+  async findCourseTracker(
+    userId: string,
+    courseId: string,
+    tenantId: string,
+    certificateId: string,
+  ) {
+    return this.courseTrackerRepo.findOne({
+      where: {
+        userId,
+        courseId,
+        tenantId,
+        certificateId,
+      },
+    });
+  }
+
+  async upsertCourseTracker(courseTrackerData: Partial<CourseTracker>) {
+    try {
+      // Use database-level upsert with ON CONFLICT to avoid race conditions
+      const result = await this.courseTrackerRepo
+        .createQueryBuilder()
+        .insert()
+        .into(CourseTracker)
+        .values(courseTrackerData)
+        .orUpdate(
+          [
+            'courseName',
+            'courseTrackingStatus',
+            'courseTrackingStartDate',
+            'courseTrackingEndDate',
+          ],
+          ['userId', 'courseId', 'tenantId', 'certificateId'],
+        )
+        .execute();
+
+      return result;
+    } catch (error) {
+      // Fallback to the original method if the database doesn't support UPSERT
+      const existingTracker = await this.courseTrackerRepo.findOne({
+        where: {
+          userId: courseTrackerData.userId,
+          courseId: courseTrackerData.courseId,
+          tenantId: courseTrackerData.tenantId,
+          certificateId: courseTrackerData.certificateId,
+        },
+      });
+
+      if (existingTracker) {
+        return this.courseTrackerRepo.update(
+          {
+            userId: courseTrackerData.userId,
+            courseId: courseTrackerData.courseId,
+            tenantId: courseTrackerData.tenantId,
+            certificateId: courseTrackerData.certificateId,
+          },
+          courseTrackerData,
+        );
+      } else {
+        return this.courseTrackerRepo.save(courseTrackerData);
+      }
+    }
+  }
+
+  async saveContentTrackerData(data: any) {
+    return this.contentTrackerRepo.save(data);
+  }
+
+  async deleteContentTrackerData(data: any) {
+    return this.contentTrackerRepo.delete(data);
+  }
+
+  async findContentTracker(
+    userId: string,
+    contentId: string,
+    tenantId: string,
+  ) {
+    return this.contentTrackerRepo.findOne({
+      where: {
+        userId,
+        contentId,
+        tenantId,
+      },
+    });
+  }
+
+  async upsertContentTracker(contentTrackerData: Partial<ContentTracker>) {
+    try {
+      // Set updatedAt timestamp
+      contentTrackerData.updatedAt = new Date();
+
+      // Use database-level upsert with ON CONFLICT to avoid race conditions
+      const result = await this.contentTrackerRepo
+        .createQueryBuilder()
+        .insert()
+        .into(ContentTracker)
+        .values(contentTrackerData)
+        .orUpdate(
+          [
+            'contentName',
+            'contentType',
+            'contentTrackingStatus',
+            'timeSpent',
+            'updatedAt',
+          ],
+          ['userId', 'contentId', 'tenantId'],
+        )
+        .execute();
+
+      return result;
+    } catch (error) {
+      // Fallback to the original method if the database doesn't support UPSERT
+      try {
+        const existingTracker = await this.contentTrackerRepo.findOne({
+          where: {
+            userId: contentTrackerData.userId,
+            contentId: contentTrackerData.contentId,
+            tenantId: contentTrackerData.tenantId,
+          },
+        });
+
+        if (existingTracker) {
+          // Only update if status is different or time spent has changed
+          if (
+            existingTracker.contentTrackingStatus !==
+              contentTrackerData.contentTrackingStatus ||
+            existingTracker.timeSpent !== contentTrackerData.timeSpent
+          ) {
+            const updateResult = await this.contentTrackerRepo.update(
+              {
+                userId: contentTrackerData.userId,
+                contentId: contentTrackerData.contentId,
+                tenantId: contentTrackerData.tenantId,
+              },
+              contentTrackerData,
+            );
+            return updateResult;
+          } else {
+            return { affected: 0 };
+          }
+        } else {
+          const saveResult =
+            await this.contentTrackerRepo.save(contentTrackerData);
+          return saveResult;
+        }
+      } catch (fallbackError) {
+        throw fallbackError;
+      }
+    }
   }
 }

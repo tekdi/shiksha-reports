@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { Kafka, Consumer, EachMessagePayload } from 'kafkajs';
 import { UserHandler } from '../handlers/user.handler';
 import { CourseHandler } from 'src/handlers/course.handler';
+import { ContentHandler } from 'src/handlers/content.handler';
 import { AttendanceHandler } from '../handlers/attendance.handler';
 import { AssessmentHandler } from '../handlers/assessment.handler';
 import { EventHandler } from 'src/handlers/event.handler';
@@ -23,6 +24,7 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
     private readonly configService: ConfigService,
     private readonly userHandler: UserHandler,
     private readonly courseHandler: CourseHandler,
+    private readonly contentHandler: ContentHandler,
     private readonly attendanceHandler: AttendanceHandler,
     private readonly assessmentHandler: AssessmentHandler,
     private readonly eventHandler: EventHandler,
@@ -137,8 +139,20 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
 
     if (!eventType || !data) {
       this.logger.warn(
-        `Invalid event received from topic ${topic}: ${JSON.stringify(event)}`,
+        `Invalid event received from topic ${topic}. EventType: ${eventType}, Data present: ${!!data}`,
       );
+      return;
+    }
+
+    // Special routing for course enrollment events regardless of topic
+    if (eventType === 'COURSE_ENROLLMENT_CREATED') {
+      await this.handleCourseEvent(eventType, data);
+      return;
+    }
+
+    // Special routing for content tracking events regardless of topic
+    if (eventType === 'CONTENT_TRACKING_CREATED') {
+      await this.handleContentEvent(eventType, data);
       return;
     }
 
@@ -223,12 +237,30 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
 
       case 'ASSESSMENT_DELETED':
         return this.assessmentHandler.handleAssessmentDelete(data);
+
+      default:
+        this.logger.warn(`Unhandled assessment eventType: ${eventType}`);
+    }
+  }
+  private async handleCourseEvent(eventType: string, data: any) {
+    this.logger.log(`Handling course-event type: ${eventType}`);
+    switch (eventType) {
       case 'COURSE_ENROLLMENT_CREATED':
-        return this.courseHandler.handleUserCourseadd(data);
+        return this.courseHandler.handleCourseEnrollmentCreated(data);
       case 'COURSE_STATUS_UPDATED':
         return this.courseHandler.handleUserCourseUpdate(data);
       default:
         this.logger.warn(`Unhandled assessment eventType: ${eventType}`);
+    }
+  }
+
+  private async handleContentEvent(eventType: string, data: any) {
+    this.logger.log(`Handling content-event type: ${eventType}`);
+    switch (eventType) {
+      case 'CONTENT_TRACKING_CREATED':
+        return this.contentHandler.handleContentTrackingCreated(data);
+      default:
+        this.logger.warn(`Unhandled content eventType: ${eventType}`);
     }
   }
 }

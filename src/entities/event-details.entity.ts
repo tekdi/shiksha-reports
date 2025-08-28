@@ -70,4 +70,4 @@ export class EventDetails {
 
   @Column('text', { array: true, nullable: true })
   attendees: string[];
-} 
+}

@@ -24,10 +24,18 @@ export class EventRepetition {
   @Column({ type: 'jsonb', nullable: true })
   onlineDetails: any;
 
-  @Column({ type: 'timestamptz', default: () => "timezone('utc'::text, now())", nullable: true })
+  @Column({
+    type: 'timestamptz',
+    default: () => "timezone('utc'::text, now())",
+    nullable: true,
+  })
   startDateTime: Date;
 
-  @Column({ type: 'timestamptz', default: () => "timezone('utc'::text, now())", nullable: true })
+  @Column({
+    type: 'timestamptz',
+    default: () => "timezone('utc'::text, now())",
+    nullable: true,
+  })
   endDateTime: Date;
 
   @CreateDateColumn()
@@ -52,4 +60,4 @@ export class EventRepetition {
   @ManyToOne(() => EventDetails)
   @JoinColumn({ name: 'eventDetailId' })
   eventDetails: EventDetails;
-} 
+}

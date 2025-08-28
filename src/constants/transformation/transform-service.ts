@@ -1,132 +1,272 @@
 import { Injectable } from '@nestjs/common';
-import { UserProfileReport } from '../../entities/user-profile.entity';
+import { User } from '../../entities/user.entity';
 import { DailyAttendanceReport } from '../../entities/daily-attendance-report.entity';
 import { AssessmentTracking } from '../../entities/assessment-tracking.entity';
 import { AssessmentTrackingScoreDetail } from '../../entities/assessment-tracking-score-detail.entity';
-import { Course } from 'src/entities/course.entity';
+import {
+  UserEventData,
+  AttendanceEventData,
+  ContentTrackingData,
+  AssessmentTrackingData,
+  AssessmentScoreData,
+  CourseEnrollmentData,
+} from '../../types';
+
+import { CohortMember } from 'src/entities/cohort-member.entity';
+import { Cohort } from 'src/entities/cohort.entity';
 import { CohortSummaryReport } from 'src/entities/cohort-summary.entity';
+import { AttendanceTracker } from 'src/entities/attendance-tracker.entity';
+import { AssessmentTracker } from 'src/entities/assessment-tracker.entity';
+import { CourseTracker } from 'src/entities/course-tracker.entity';
+import { ContentTracker } from 'src/entities/content-tracker.entity';
 
 @Injectable()
 export class TransformService {
   constructor() {}
 
-  async transformUserData(data: any) {
+  async transformUserData(data: UserEventData) {
     try {
       const tenant = data.tenantData?.[0] ?? {};
 
-      // Extract custom field values
-      const extractField = (label: string) =>
-        data.customFields?.find((f: any) => f.label === label)
-          ?.selectedValues?.[0]?.value ?? null;
+      // Extract custom field values from the new Kafka message structure
+      const extractCustomField = (label: string) => {
+        if (!data.customFields || !Array.isArray(data.customFields)) {
+          return null;
+        }
 
-      // Transform firstName, middleName, lastName into fullName
-      const constructFullName = () => {
-        const firstName = data.firstName?.trim() || '';
-        const middleName = data.middleName?.trim() || '';
-        const lastName = data.lastName?.trim() || '';
-        
-        // Combine names with spaces, filtering out empty strings
-        const nameParts = [firstName, middleName, lastName].filter(part => part.length > 0);
-        return nameParts.length > 0 ? nameParts.join(' ') : (data.fullName || null);
+        const field = data.customFields.find((f: any) => f.label === label);
+
+        if (
+          !field ||
+          !field.selectedValues ||
+          !Array.isArray(field.selectedValues) ||
+          field.selectedValues.length === 0
+        ) {
+          return null;
+        }
+
+        const selectedValue = field.selectedValues[0];
+
+        // Handle different types of selectedValues
+        if (typeof selectedValue === 'string') {
+          return selectedValue;
+        } else if (
+          typeof selectedValue === 'object' &&
+          selectedValue !== null
+        ) {
+          // Return the 'value' property if it exists, otherwise 'id'
+          return selectedValue.id || null;
+        }
+
+        return null;
       };
 
-      // Find all active cohorts
-      const activeCohorts = data.cohorts?.filter((cohort: any) => cohort.cohortMemberStatus === 'active') ?? [];
+      // Helper function to convert yes/no to boolean
+      const convertToBoolean = (value: string | null) => {
+        if (value === null) return null;
+        return value.toLowerCase() === 'yes';
+      };
 
-      // If no active cohorts, create one entry with null cohort fields
-      if (activeCohorts.length === 0) {
-        const transformedData: Partial<UserProfileReport> = {
-          userId: data.userId,
-          username: data.username,
-          fullName: constructFullName(),
-          email: data.email,
-          mobile: data.mobile,
-          dob: data.dob,
-          gender: data.gender,
-          status: data.status,
-          createdAt: data.createdAt ? new Date(data.createdAt) : undefined,
-          updatedAt: data.updatedAt ? new Date(data.updatedAt) : undefined,
-          createdBy: data.createdBy,
-          updatedBy: data.updatedBy,
-          tenantId: tenant.tenantId,
-          tenantName: tenant.tenantName,
-          roleId: tenant.roleId,
-          roleName: tenant.roleName,
-          customFields: data.customFields ?? [],
-          cohorts: data.cohorts ?? [],
-          automaticMember: data.automaticMember ?? false,
-          state: extractField('STATE'),
-          district: extractField('DISTRICT'),
-          block: extractField('BLOCK'),
-          village: extractField('VILLAGE'),
-          batchId: null,
-          batchName: null,
-          cohortId: null,
-          cohortName: null,
-          academicYear: null,
-        };
-        return [transformedData];
-      }
+      // Convert status string (active/inactive) to boolean
+      const convertStatusToBoolean = (status: string | null | undefined) => {
+        if (!status) return null;
+        return status.toLowerCase() === 'active';
+      };
 
-      // Create separate entries for each active cohort
-      const transformedDataArray = activeCohorts.map((cohort: any) => {
-        const transformedData: Partial<UserProfileReport> = {
-          userId: data.userId,
-          username: data.username,
-          fullName: constructFullName(),
-          email: data.email,
-          mobile: data.mobile,
-          dob: data.dob,
-          gender: data.gender,
-          status: data.status,
-          createdAt: data.createdAt ? new Date(data.createdAt) : undefined,
-          updatedAt: data.updatedAt ? new Date(data.updatedAt) : undefined,
-          createdBy: data.createdBy,
-          updatedBy: data.updatedBy,
-          tenantId: tenant.tenantId,
-          tenantName: tenant.tenantName,
-          roleId: tenant.roleId,
-          roleName: tenant.roleName,
-          customFields: data.customFields ?? [],
-          cohorts: data.cohorts ?? [],
-          automaticMember: data.automaticMember ?? false,
-          state: extractField('STATE'),
-          district: extractField('DISTRICT'),
-          block: extractField('BLOCK'),
-          village: extractField('VILLAGE'),
-          // Extract cohort-specific fields from the current active cohort
-          batchId: cohort.batchId ?? null,
-          batchName: cohort.batchName ?? null,
-          cohortId: cohort.cohortId ?? null,
-          cohortName: cohort.cohortName ?? null,
-          academicYear: cohort.academicYearSession ?? null,
-        };
-        return transformedData;
-      });
+      const transformedData: Partial<User> & Record<string, any> = {
+        // Basic user fields - mapping to entity property names (not column names)
+        userId: data.userId,
+        username: data.username,
+        fullName:
+          `${data.firstName || ''} ${data.middleName ? data.middleName + ' ' : ''}${data.lastName || ''}`.trim(),
+        email: data.email,
+        mobile: data.mobile?.toString(),
+        dob: data.dob,
+        gender: data.gender,
+        status: convertStatusToBoolean(data.status),
+        createdAt: data.createdAt ? new Date(data.createdAt) : undefined,
+        updatedAt: data.updatedAt ? new Date(data.updatedAt) : undefined,
 
-      return transformedDataArray;
+        // Add enrollmentId from main data
+        userEnrollmentNumber: data.enrollmentId,
+
+        // Location fields from custom fields
+        stateId: extractCustomField('STATE'),
+        districtId: extractCustomField('DISTRICT'),
+        blockId: extractCustomField('BLOCK'),
+        villageId: extractCustomField('VILLAGE'),
+
+        // Additional custom fields mapped to entity properties
+        userFatherName: extractCustomField('FATHER_NAME'),
+        userGuardianName: extractCustomField('NAME_OF_GUARDIAN'),
+        userGuardianRelation: extractCustomField('RELATION_WITH_GUARDIAN'),
+        userParentPhone: extractCustomField('PARENT_GUARDIAN_PHONE_NO'),
+        userClass: extractCustomField(
+          'HIGHEST_EDCATIONAL_QUALIFICATION_OR_LAST_PASSED_GRADE',
+        ),
+        userMaritalStatus: extractCustomField('MARITAL_STATUS'),
+        userWhatDoYouWantToBecome: extractCustomField(
+          'WHAT_DO_YOU_WANT_TO_BECOME',
+        ),
+        userDropOutReason: extractCustomField(
+          'REASON_FOR_DROP_OUT_FROM_SCHOOL',
+        ),
+        userWorkDomain: extractCustomField('WHAT_IS_YOUR_PRIMARY_WORK'),
+        preferredModeOfLearning: extractCustomField(
+          'WHAT_IS_YOUR_PREFERRED_MODE_OF_LEARNING',
+        ),
+
+        // Additional fields from new structure
+        centerId: extractCustomField('CENTER'),
+        phoneTypeAccessible: extractCustomField('TYPE_OF_PHONE_ACCESSIBLE'),
+        familyMemberDetails: extractCustomField('FAMILY_MEMBER_DETAILS'),
+
+        // Boolean fields
+        userOwnPhoneCheck: convertToBoolean(
+          extractCustomField('DOES_THIS_PHONE_BELONG_TO_YOU'),
+        ),
+      };
+
+      return transformedData;
     } catch (error) {
-      return error;
+      console.error('Error transforming user data:', error);
+      throw error;
     }
   }
-  async transformCourseData(data: any) {
-    return data;
-  }
-  mapContentToCourseEntity(content: any): Partial<Course> {
-    return {
-      courseDoId: content.identifier,
-      courseName: content.name,
-      channel: content.channel,
-      language: content.language || [],
-      program: content.program || [],
-      primaryUser: content.primaryUser || [],
-      targetAgeGroup: content.targetAgeGroup || [],
-      keywords: content.keywords || [],
-      details: content, // save full original JSON here
-    };
+
+  async transformCohortMemberData(
+    data: UserEventData,
+  ): Promise<Partial<CohortMember>[]> {
+    try {
+      const userId = data.userId;
+      const cohortMembers: Partial<CohortMember>[] = [];
+
+      if (data.cohorts && Array.isArray(data.cohorts)) {
+        for (const cohort of data.cohorts) {
+          const cohortMember: Partial<CohortMember> = {
+            UserID: userId,
+            CohortID: cohort.cohortId,
+            MemberStatus: cohort.cohortMemberStatus || 'active',
+            AcademicYearID: cohort.academicYearId,
+          };
+          cohortMembers.push(cohortMember);
+        }
+      }
+
+      return cohortMembers;
+    } catch (error) {
+      console.error('Error transforming cohort member data:', error);
+      throw error;
+    }
   }
 
-  async transformDailyAttendanceData(data: any) {
+  async transformCohortData(data: any): Promise<Partial<Cohort>> {
+    try {
+      // Extract custom field values from the new Kafka message structure
+      const extractCustomField = (label: string) => {
+        if (!data.customFields || !Array.isArray(data.customFields)) {
+          return null;
+        }
+
+        const field = data.customFields.find((f: any) => f.label === label);
+        if (
+          !field ||
+          !field.selectedValues ||
+          !Array.isArray(field.selectedValues) ||
+          field.selectedValues.length === 0
+        ) {
+          return null;
+        }
+
+        const selectedValue = field.selectedValues[0];
+
+        // Handle different types of selectedValues
+        if (typeof selectedValue === 'string') {
+          return selectedValue;
+        } else if (
+          typeof selectedValue === 'object' &&
+          selectedValue !== null
+        ) {
+          // Return the 'id' property for cohort fields
+          return selectedValue.id || null;
+        }
+
+        return null;
+      };
+
+      const transformedData: Partial<Cohort> = {
+        cohortId: data.cohortId,
+        tenantId: data.tenantId,
+        cohortName: data.name,
+        createdOn: data.createdAt ? new Date(data.createdAt) : undefined,
+        parentId: data.parentId,
+        type: data.type,
+
+        // Location fields from custom fields
+        coStateId: extractCustomField('STATE'),
+        coDistrictId: extractCustomField('DISTRICT'),
+        coBlockId: extractCustomField('BLOCK'),
+        coVillageId: extractCustomField('VILLAGE'),
+
+        // Educational fields
+        coBoard: extractCustomField('BOARD'),
+        coGrade: extractCustomField('GRADE'),
+        coMedium: extractCustomField('MEDIUM'),
+        coSubject: extractCustomField('SUBJECT'),
+
+        // Additional fields
+        coGoogleMapLink: extractCustomField('GOOGLE_MAP_LINK'),
+        coIndustry: extractCustomField('INDUSTRY'),
+      };
+
+      return transformedData;
+    } catch (error) {
+      console.error('Error transforming cohort data:', error);
+      throw error;
+    }
+  }
+
+  async transformCourseData(data: CourseEnrollmentData) {
+    return data;
+  }
+
+  async transformAttendanceData(data: AttendanceEventData): Promise<{
+    attendanceData: Partial<AttendanceTracker>;
+    dayColumn: string;
+    attendanceValue: string;
+  }> {
+    try {
+      // Parse the attendance date
+      const attendanceDate = new Date(data.attendanceDate);
+      const year = attendanceDate.getFullYear();
+      const month = attendanceDate.getMonth() + 1; // getMonth() returns 0-11
+      const day = attendanceDate.getDate();
+
+      // Format day as two-digit string for column mapping
+      const dayColumn = `day${day.toString().padStart(2, '0')}`;
+
+      const transformedData: Partial<AttendanceTracker> = {
+        tenantId: data.tenantId,
+        context: data.context,
+        contextId: data.contextId,
+        userId: data.userId,
+        year: year,
+        month: month,
+      };
+
+      return {
+        attendanceData: transformedData,
+        dayColumn: dayColumn,
+        attendanceValue: data.attendance,
+      };
+    } catch (error) {
+      console.error('Error transforming attendance data:', error);
+      throw error;
+    }
+  }
+
+  // Keep the old method for backward compatibility if needed
+  async transformDailyAttendanceData(data: AttendanceEventData) {
     try {
       const transformedData: Partial<DailyAttendanceReport> = {
         attendanceId: data.attendanceId,
@@ -148,47 +288,115 @@ export class TransformService {
     }
   }
 
-  async transformAssessmentData(data: any) {
+  async transformAssessmentTrackerData(data: AssessmentTrackingData): Promise<{
+    assessmentData: Partial<AssessmentTracker>;
+    scoreDetails: AssessmentScoreData[];
+  }> {
     try {
-      const transformedData: Partial<AssessmentTracking> = {
-        assessmentTrackingId: data.assessmentTrackingId,
-        userId: data.userId,
+      // Debug the incoming data to identify which field has the problematic value
+
+      const transformedData: Partial<AssessmentTracker> = {
+        assessTrackingId: data.assessmentTrackingId,
+        assessmentId: data.contentId || data.courseId,
         courseId: data.courseId,
-        contentId: data.contentId,
-        attemptId: data.attemptId,
-        createdOn: data.createdOn ? new Date(data.createdOn) : new Date(),
-        lastAttemptedOn: data.lastAttemptedOn
-          ? new Date(data.lastAttemptedOn)
-          : new Date(),
-        assessmentSummary: data.assessmentSummary,
-        totalMaxScore: data.totalMaxScore,
-        totalScore: data.totalScore,
-        updatedOn: data.updatedOn ? new Date(data.updatedOn) : new Date(),
-        timeSpent: data.timeSpent,
-        unitId: data.unitId,
-        name: data.name,
-        description: data.description,
-        subject: data.subject,
-        domain: data.domain,
-        subDomain: data.subDomain,
-        channel: data.channel,
-        assessmentType: data.assessmentType,
-        program: data.program,
-        targetAgeGroup: data.targetAgeGroup,
         assessmentName: data.assessmentName,
-        contentLanguage: data.contentLanguage,
-        status: data.status,
-        framework: data.framework,
-        summaryType: data.summaryType,
+        userId: data.userId,
+        tenantId: data.tenantId,
+        totalMaxScore: data.totalMaxScore || 0,
+        totalScore: data.totalScore || 0,
+        timeSpent: parseInt(String(data.timeSpent)) || 0,
+        assessmentSummary: JSON.stringify(data.assessmentSummary),
+        numOfAttempt: 1,
+        assessmentType: data.assessmentType,
       };
+
+      const scoreDetails = data.scores || [];
+
+      return {
+        assessmentData: transformedData,
+        scoreDetails: scoreDetails,
+      };
+    } catch (error) {
+      console.error('Error transforming assessment tracker data:', error);
+      throw error;
+    }
+  }
+
+  async transformCourseTrackerData(
+    data: any,
+    courseName: string,
+  ): Promise<Partial<CourseTracker>> {
+    try {
+      const transformedData: Partial<CourseTracker> = {
+        userId: data.userId,
+        tenantId: data.tenantId,
+        courseId: data.courseId,
+        courseName: courseName,
+        courseTrackingStatus: data.status,
+        certificateId: data.usercertificateId,
+        courseTrackingStartDate: data.createdOn
+          ? new Date(data.createdOn)
+          : undefined,
+        courseTrackingEndDate: data.completedOn
+          ? new Date(data.completedOn)
+          : undefined,
+      };
+
       return transformedData;
     } catch (error) {
-      return error;
+      console.error('Error transforming course tracker data:', error);
+      throw error;
+    }
+  }
+
+  async transformContentTrackerData(
+    data: any,
+    contentName: string,
+  ): Promise<Partial<ContentTracker>> {
+    try {
+      // Determine content tracking status based on details array
+      let contentTrackingStatus = 'in_progress'; // default
+      let totalTimeSpent = 0;
+
+      if (data.details && Array.isArray(data.details)) {
+        // Calculate total time spent
+        totalTimeSpent = data.details.reduce((total, detail) => {
+          return total + (detail.duration || 0);
+        }, 0);
+
+        // Determine status based on eid values
+        const hasStart = data.details.some((detail) => detail.eid === 'START');
+        const hasEnd = data.details.some((detail) => detail.eid === 'END');
+
+        if (hasEnd) {
+          contentTrackingStatus = 'completed';
+        } else if (hasStart) {
+          contentTrackingStatus = 'started';
+        }
+      }
+
+      const transformedData: Partial<ContentTracker> = {
+        contentTrackerId: data.contentTrackingId,
+        userId: data.userId,
+        tenantId: data.tenantId,
+        contentId: data.contentId,
+        courseId: data.courseId,
+        contentName: contentName,
+        contentType: data.contentType,
+        contentTrackingStatus: contentTrackingStatus,
+        timeSpent: Math.round(totalTimeSpent), // Round to nearest integer
+        createdAt: data.createdOn ? new Date(data.createdOn) : new Date(),
+        updatedAt: data.updatedOn ? new Date(data.updatedOn) : new Date(),
+      };
+
+      return transformedData;
+    } catch (error) {
+      throw error;
     }
   }
 
   async transformAssessmentScoreData(
-    data: any,
+    data: AssessmentScoreData,
   ): Promise<Partial<AssessmentTrackingScoreDetail>> {
     try {
       const transformedData: Partial<AssessmentTrackingScoreDetail> = {
@@ -211,7 +419,7 @@ export class TransformService {
     }
   }
 
-  async transformCohortData(data: any): Promise<Partial<CohortSummaryReport>> {
+  async transformCohortSummaryData(data: any): Promise<Partial<CohortSummaryReport>> {
     try {
       const tenant = data.tenantData?.[0] ?? {};
 
@@ -222,7 +430,7 @@ export class TransformService {
 
       const transformedData: Partial<CohortSummaryReport> = {
         cohortId: data.cohortId,
-        parentId : data .parentId,
+        parentId: data.parentId,
         name: data.name,
         type: data.type,
         tenantId: tenant.tenantId || data.tenantId,
