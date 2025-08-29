@@ -169,7 +169,7 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
         await this.handleAttendanceEvent(eventType, data);
         break;
 
-      case 'assessment-topic':
+      case 'tracking-topic':
         await this.handleAssessmentEvent(eventType, data);
         break;
 
