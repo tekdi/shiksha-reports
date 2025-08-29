@@ -19,6 +19,7 @@ import { AttendanceTracker } from 'src/entities/attendance-tracker.entity';
 import { AssessmentTracker } from 'src/entities/assessment-tracker.entity';
 import { CourseTracker } from 'src/entities/course-tracker.entity';
 import { ContentTracker } from 'src/entities/content-tracker.entity';
+import { RegistrationTracker } from 'src/entities/registration-tracker.entity';
 
 @Injectable()
 export class TransformService {
@@ -448,6 +449,35 @@ export class TransformService {
       return transformedData;
     } catch (error) {
       console.error('Error transforming cohort data:', error);
+      throw error;
+    }
+  }
+
+  async transformRegistrationTrackerData(data: UserEventData): Promise<Partial<RegistrationTracker>[]> {
+    try {
+      const registrationTrackers: Partial<RegistrationTracker>[] = [];
+      
+      // Extract platform registration date from user creation
+      const platformRegnDate = data.createdAt ? new Date(data.createdAt) : new Date();
+      
+      // Process each tenant data to create registration tracker entries
+      if (data.tenantData && Array.isArray(data.tenantData)) {
+        for (const tenant of data.tenantData) {
+          const registrationTracker: Partial<RegistrationTracker> = {
+            userId: data.userId,
+            roleId: tenant.roleId,
+            tenantId: tenant.tenantId,
+            platformRegnDate: platformRegnDate,
+            tenantRegnDate: platformRegnDate, // Same as platform date for new registrations
+            isActive: true,
+          };
+          registrationTrackers.push(registrationTracker);
+        }
+      }
+
+      return registrationTrackers;
+    } catch (error) {
+      console.error('Error transforming registration tracker data:', error);
       throw error;
     }
   }

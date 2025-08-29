@@ -50,6 +50,33 @@ export class UserHandler {
     }
   }
 
+  async handleUserCreated(data: UserEventData) {
+    try {
+      // Validate required fields
+      validateString(data.userId, 'userId');
+
+      // First handle the regular user upsert
+      const savedUser = await this.handleUserUpsert(data);
+
+      // For USER_CREATED events, also save registration tracker data
+      if (data.tenantData && Array.isArray(data.tenantData)) {
+        const registrationTrackers = await this.transformService.transformRegistrationTrackerData(data);
+        
+        // Save each registration tracker entry
+        for (const registrationTracker of registrationTrackers) {
+          await this.dbService.upsertRegistrationTracker(registrationTracker);
+        }
+      }
+
+      return savedUser;
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        throw new Error(`Validation failed: ${error.message}`);
+      }
+      throw error;
+    }
+  }
+
   async handleUserDelete(data: { userId: string }) {
     try {
       validateString(data.userId, 'userId');

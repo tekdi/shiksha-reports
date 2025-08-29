@@ -17,6 +17,7 @@ import { AttendanceTracker } from 'src/entities/attendance-tracker.entity';
 import { AssessmentTracker } from 'src/entities/assessment-tracker.entity';
 import { CourseTracker } from 'src/entities/course-tracker.entity';
 import { ContentTracker } from 'src/entities/content-tracker.entity';
+import { RegistrationTracker } from 'src/entities/registration-tracker.entity';
 
 @Injectable()
 export class DatabaseService {
@@ -51,6 +52,8 @@ export class DatabaseService {
     private courseTrackerRepo: Repository<CourseTracker>,
     @InjectRepository(ContentTracker)
     private contentTrackerRepo: Repository<ContentTracker>,
+    @InjectRepository(RegistrationTracker)
+    private registrationTrackerRepo: Repository<RegistrationTracker>,
   ) {}
 
   async saveUserProfileData(data: any) {
@@ -466,6 +469,54 @@ export class DatabaseService {
         }
       } catch (fallbackError) {
         throw fallbackError;
+      }
+    }
+  }
+
+  // Registration Tracker methods
+  async saveRegistrationTrackerData(data: Partial<RegistrationTracker>) {
+    return this.registrationTrackerRepo.save(data);
+  }
+
+  async findRegistrationTracker(userId: string, tenantId: string) {
+    return this.registrationTrackerRepo.findOne({
+      where: { userId, tenantId }
+    });
+  }
+
+  async upsertRegistrationTracker(registrationData: Partial<RegistrationTracker>) {
+    try {
+      // Use database-level upsert with ON CONFLICT to avoid race conditions
+      const result = await this.registrationTrackerRepo
+        .createQueryBuilder()
+        .insert()
+        .into(RegistrationTracker)
+        .values(registrationData)
+        .orUpdate(['platformRegnDate', 'tenantRegnDate', 'isActive'], ['userId', 'tenantId', 'roleId'])
+        .execute();
+
+      return result;
+    } catch (error) {
+      // Fallback to the original method if the database doesn't support UPSERT
+      const existingRecord = await this.registrationTrackerRepo.findOne({
+        where: { 
+          userId: registrationData.userId,
+          tenantId: registrationData.tenantId,
+          roleId: registrationData.roleId
+        }
+      });
+
+      if (existingRecord) {
+        return this.registrationTrackerRepo.update(
+          { 
+            userId: registrationData.userId,
+            tenantId: registrationData.tenantId,
+            roleId: registrationData.roleId
+          },
+          registrationData
+        );
+      } else {
+        return this.registrationTrackerRepo.save(registrationData);
       }
     }
   }
