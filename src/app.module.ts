@@ -27,6 +27,7 @@ import { CourseTracker } from './entities/course-tracker.entity';
 import { ContentTracker } from './entities/content-tracker.entity';
 import { ContentHandler } from './handlers/content.handler';
 import { CohortHandler } from './handlers/cohort.handler';
+import { RegistrationTracker } from './entities/registration-tracker.entity';
 
 @Module({
   imports: [
@@ -70,6 +71,7 @@ import { CohortHandler } from './handlers/cohort.handler';
       AssessmentTracker,
       CourseTracker,
       ContentTracker,
+      RegistrationTracker,
     ]),
   ],
   providers: [

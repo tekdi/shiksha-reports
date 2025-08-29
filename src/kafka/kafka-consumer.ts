@@ -181,6 +181,8 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
   private async handleUserEvent(eventType: string, data: any) {
     switch (eventType) {
       case 'USER_CREATED':
+        return this.userHandler.handleUserCreated(data);
+        
       case 'USER_UPDATED':
         return this.userHandler.handleUserUpsert(data);
 

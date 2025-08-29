@@ -26,7 +26,28 @@ export interface CohortData {
 
 export interface TenantData {
   tenantId: string;
+  tenantName?: string;
   name?: string;
+  roleId?: string;
+  roleName?: string;
+  templateId?: string;
+  contentFramework?: string;
+  collectionFramework?: string;
+  channelId?: string;
+  userTenantMappingId?: string;
+  tenantType?: string;
+  params?: {
+    uiConfig?: {
+      showSignIn?: boolean;
+      showSignup?: boolean;
+      showContent?: string[];
+      showProgram?: boolean;
+      isDoTracking?: boolean;
+      isEditProfile?: boolean;
+      isTrackingShow?: boolean;
+      isCompleteProfile?: boolean;
+    };
+  };
 }
 
 export interface CustomField {
