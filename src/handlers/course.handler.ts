@@ -18,26 +18,7 @@ export class CourseHandler {
     private configService: ConfigService,
   ) {}
 
-  async handleUserCourseadd(data: any) {
-    try {
-      // Validate required fields
-      validateString(data.userId, 'userId');
-      validateString(data.courseId, 'courseId');
 
-      // Only save user course certificate data, no need for separate course entity
-      return this.dbService.saveUserCourseCertificate(data);
-    } catch (error) {
-      if (error instanceof ValidationError) {
-        console.error(
-          'Validation failed in handleUserCourseadd:',
-          error.message,
-        );
-        throw new Error(`Validation failed: ${error.message}`);
-      }
-      console.error('Error handling user course add:', error);
-      throw error;
-    }
-  }
 
   async handleCourseEnrollmentCreated(data: CourseEnrollmentData) {
     try {
@@ -78,22 +59,7 @@ export class CourseHandler {
       throw error;
     }
   }
-  async handleUserCourseUpdate(data: any) {
-    try {
-      // Validate required fields
-      validateString(data.userId, 'userId');
-      validateString(data.courseId, 'courseId');
 
-      const transformedData =
-        await this.transformService.transformCourseData(data);
-      return this.dbService.updateUserCourseCertificate(transformedData);
-    } catch (error) {
-      if (error instanceof ValidationError) {
-        throw new Error(`Validation failed: ${error.message}`);
-      }
-      throw error;
-    }
-  }
 
   //get courseName
   async getCourseName(courseId: string) {

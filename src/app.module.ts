@@ -6,13 +6,9 @@ import { DatabaseService } from './services/database.service';
 import { User } from './entities/user.entity';
 import { UserHandler } from './handlers/user.handler';
 import { TransformService } from './constants/transformation/transform-service';
-import { CohortSummaryReport } from './entities/cohort-summary.entity';
-import { UserCourseCertificate } from './entities/user-course-data.entity';
 import { CourseHandler } from './handlers/course.handler';
 
 import { DailyAttendanceReport } from './entities/daily-attendance-report.entity';
-import { AssessmentTracking } from './entities/assessment-tracking.entity';
-import { AssessmentTrackingScoreDetail } from './entities/assessment-tracking-score-detail.entity';
 import { AttendanceHandler } from './handlers/attendance.handler';
 import { AssessmentHandler } from './handlers/assessment.handler';
 import { Event } from './entities/event.entity';
@@ -55,13 +51,8 @@ import { RegistrationTracker } from './entities/registration-tracker.entity';
 
     // Register the entity for repository injection
     TypeOrmModule.forFeature([
-      CohortSummaryReport,
-      UserCourseCertificate,
       User,
-      CohortSummaryReport,
       DailyAttendanceReport,
-      AssessmentTracking,
-      AssessmentTrackingScoreDetail,
       Event,
       EventDetails,
       EventRepetition,
