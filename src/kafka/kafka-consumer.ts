@@ -249,8 +249,6 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
     switch (eventType) {
       case 'COURSE_ENROLLMENT_CREATED':
         return this.courseHandler.handleCourseEnrollmentCreated(data);
-      case 'COURSE_STATUS_UPDATED':
-        return this.courseHandler.handleUserCourseUpdate(data);
       default:
         this.logger.warn(`Unhandled assessment eventType: ${eventType}`);
     }
