@@ -136,16 +136,16 @@ export class TransformService {
 
   async transformCohortMemberData(
     data: UserEventData,
-  ): Promise<Partial<CohortMember>[]> {
+  ){
     try {
       const userId = data.userId;
-      const cohortMembers: Partial<CohortMember>[] = [];
+      const cohortMembers = [];
 
       if (data.cohorts && Array.isArray(data.cohorts)) {
         for (const cohort of data.cohorts) {
-          const cohortMember: Partial<CohortMember> = {
+          const cohortMember = {
             UserID: userId,
-            CohortID: cohort.cohortId,
+            CohortID: cohort.batchId,
             MemberStatus: cohort.cohortMemberStatus || 'active',
             AcademicYearID: cohort.academicYearId,
           };

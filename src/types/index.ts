@@ -22,6 +22,7 @@ export interface CohortData {
   cohortId: string;
   cohortMemberStatus?: string;
   academicYearId?: string;
+  batchId?: string;
 }
 
 export interface TenantData {
