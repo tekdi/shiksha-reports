@@ -107,6 +107,69 @@ export class DatabaseService {
     );
   }
 
+  async upsertCohortMemberData(cohortMemberData: Partial<CohortMember>) {
+    try {
+      // Check if a record with the same UserId and CohortID already exists
+      const existingMember = await this.cohortMemberRepo.findOne({
+        where: {
+          UserID: cohortMemberData.UserID,
+          CohortID: cohortMemberData.CohortID,
+        },
+      });
+
+      if (existingMember) {
+        // Check if all fields are exactly the same
+        const allFieldsSame =
+          existingMember.UserID === cohortMemberData.UserID &&
+          existingMember.CohortID === cohortMemberData.CohortID &&
+          existingMember.MemberStatus === cohortMemberData.MemberStatus &&
+          existingMember.AcademicYearID === cohortMemberData.AcademicYearID;
+
+        if (allFieldsSame) {
+          console.log(
+            `[DatabaseService] User ${cohortMemberData.UserID} is already assigned to cohort ${cohortMemberData.CohortID} with the same status. No changes needed.`,
+          );
+          return { action: 'no_change', data: existingMember };
+        }
+
+        // If UserId and CohortID are same but other fields are different, update
+        console.log(
+          `[DatabaseService] Updating cohort member status for user ${cohortMemberData.UserID} in cohort ${cohortMemberData.CohortID}`,
+        );
+        await this.cohortMemberRepo.update(
+          {
+            UserID: cohortMemberData.UserID,
+            CohortID: cohortMemberData.CohortID,
+          },
+          {
+            MemberStatus: cohortMemberData.MemberStatus,
+            AcademicYearID: cohortMemberData.AcademicYearID,
+          },
+        );
+
+        // Return the updated record
+        const updatedMember = await this.cohortMemberRepo.findOne({
+          where: {
+            UserID: cohortMemberData.UserID,
+            CohortID: cohortMemberData.CohortID,
+          },
+        });
+        
+        return { action: 'updated', data: updatedMember };
+      } else {
+        // If no existing record, insert new one
+        console.log(
+          `[DatabaseService] Creating new cohort member entry for user ${cohortMemberData.UserID} in cohort ${cohortMemberData.CohortID}`,
+        );
+        const newMember = await this.cohortMemberRepo.save(cohortMemberData);
+        return { action: 'created', data: newMember };
+      }
+    } catch (error) {
+      console.error('Error in upsertCohortMemberData:', error);
+      throw error;
+    }
+  }
+
   async saveCohortData(data: any) {
     return this.cohortNewRepo.save(data);
   }
