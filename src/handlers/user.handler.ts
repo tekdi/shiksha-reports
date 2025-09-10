@@ -35,9 +35,10 @@ export class UserHandler {
         const cohortMemberData =
           await this.transformService.transformCohortMemberData(data);
 
-        // Save each cohort member relationship
+        // Save each cohort member relationship with upsert logic
         for (const cohortMember of cohortMemberData) {
-          await this.dbService.saveCohortMemberData(cohortMember);
+          const result = await this.dbService.upsertCohortMemberData(cohortMember);
+          console.log(`[UserHandler] Cohort member ${result.action}: userId=${cohortMember.UserID}, cohortId=${cohortMember.CohortID}`);
         }
       }
 

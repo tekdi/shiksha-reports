@@ -5,14 +5,13 @@ import { DailyAttendanceReport } from '../../entities/daily-attendance-report.en
 import {
   UserEventData,
   AttendanceEventData,
-  ContentTrackingData,
   AssessmentTrackingData,
   AssessmentScoreData,
   CourseEnrollmentData,
 } from '../../types';
 
-import { CohortMember } from 'src/entities/cohort-member.entity';
 import { Cohort } from 'src/entities/cohort.entity';
+import { DatabaseService } from 'src/services/database.service';
 
 import { AttendanceTracker } from 'src/entities/attendance-tracker.entity';
 import { AssessmentTracker } from 'src/entities/assessment-tracker.entity';
@@ -22,11 +21,11 @@ import { RegistrationTracker } from 'src/entities/registration-tracker.entity';
 
 @Injectable()
 export class TransformService {
-  constructor() {}
+  constructor(private readonly dbService: DatabaseService) {}
 
   async transformUserData(data: UserEventData) {
     try {
-      const tenant = data.tenantData?.[0] ?? {};
+      // const tenant = data.tenantData?.[0] ?? {}; // Commented out as it's not used
 
       // Extract custom field values from the new Kafka message structure
       const extractCustomField = (label: string) => {
@@ -134,9 +133,7 @@ export class TransformService {
     }
   }
 
-  async transformCohortMemberData(
-    data: UserEventData,
-  ){
+  async transformCohortMemberData(data: UserEventData) {
     try {
       const userId = data.userId;
       const cohortMembers = [];
@@ -194,13 +191,89 @@ export class TransformService {
         return null;
       };
 
+      // Extract custom field by fieldId
+      const extractCustomFieldById = (fieldId: string) => {
+        if (!data.customFields || !Array.isArray(data.customFields)) {
+          return null;
+        }
+
+        const field = data.customFields.find((f: any) => f.fieldId === fieldId);
+        if (
+          !field ||
+          !field.selectedValues ||
+          !Array.isArray(field.selectedValues) ||
+          field.selectedValues.length === 0
+        ) {
+          return null;
+        }
+
+        const selectedValue = field.selectedValues[0];
+
+        // Return the value property for the type determination
+        if (typeof selectedValue === 'object' && selectedValue !== null) {
+          return selectedValue.value || selectedValue.id || null;
+        } else if (typeof selectedValue === 'string') {
+          return selectedValue;
+        }
+
+        return null;
+      };
+
+      // Determine the correct type based on event type and conditions
+      let correctedType = data.type;
+
+      if (data.type === 'COHORT') {
+        // For COHORT_CREATED events, find the TYPE_OF_CENTER field
+        const typeOfCenter = extractCustomFieldById(
+          '000a7469-2721-4c7b-8180-52812a0f6fe7',
+        );
+
+        if (typeOfCenter === 'remote') {
+          correctedType = 'RemoteCenter';
+        } else if (typeOfCenter === 'regular') {
+          correctedType = 'RegularCenter';
+        } else {
+          // Keep original type if no matching custom field found
+          console.warn(
+            `Unknown type of center: ${typeOfCenter}, keeping original type: ${data.type}`,
+          );
+        }
+      } else if (data.type === 'BATCH' && data.parentId) {
+        // For COHORT_UPDATED events with BATCH type, check parent cohort
+        try {
+          const parentCohort = await this.dbService.findCohort(data.parentId);
+
+          if (parentCohort) {
+            if (parentCohort.type === 'RemoteCenter') {
+              correctedType = 'RemoteBatch';
+            } else if (parentCohort.type === 'RegularCenter') {
+              correctedType = 'RegularBatch';
+            } else {
+              console.warn(
+                `Parent cohort has unknown type: ${parentCohort.type}, keeping original type: ${data.type}`,
+              );
+            }
+          } else {
+            console.warn(
+              `Parent cohort with ID ${data.parentId} not found, keeping original type: ${data.type}`,
+            );
+          }
+        } catch (error) {
+          console.error(
+            `Error fetching parent cohort ${data.parentId}:`,
+            error,
+          );
+          // Keep original type if error occurs
+        }
+      }
+
       const transformedData: Partial<Cohort> = {
         cohortId: data.cohortId,
         tenantId: data.tenantId,
         cohortName: data.name,
         createdOn: data.createdAt ? new Date(data.createdAt) : undefined,
         parentId: data.parentId,
-        type: data.type,
+        type: correctedType,
 
         // Location fields from custom fields
         coStateId: extractCustomField('STATE'),
@@ -218,6 +291,10 @@ export class TransformService {
         coGoogleMapLink: extractCustomField('GOOGLE_MAP_LINK'),
         coIndustry: extractCustomField('INDUSTRY'),
       };
+
+      console.log(
+        `[TransformService] Cohort ${data.cohortId}: Original type "${data.type}" -> Corrected type "${correctedType}"`,
+      );
 
       return transformedData;
     } catch (error) {
@@ -395,15 +472,17 @@ export class TransformService {
     }
   }
 
-
-
-  async transformRegistrationTrackerData(data: UserEventData): Promise<Partial<RegistrationTracker>[]> {
+  async transformRegistrationTrackerData(
+    data: UserEventData,
+  ): Promise<Partial<RegistrationTracker>[]> {
     try {
       const registrationTrackers: Partial<RegistrationTracker>[] = [];
-      
+
       // Extract platform registration date from user creation
-      const platformRegnDate = data.createdAt ? new Date(data.createdAt) : new Date();
-      
+      const platformRegnDate = data.createdAt
+        ? new Date(data.createdAt)
+        : new Date();
+
       // Process each tenant data to create registration tracker entries
       if (data.tenantData && Array.isArray(data.tenantData)) {
         for (const tenant of data.tenantData) {
