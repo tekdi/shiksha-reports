@@ -295,7 +295,6 @@ export class DatabaseService {
             'totalScore',
             'timeSpent',
             'assessmentSummary',
-            'numOfAttempt',
             'assessmentType',
           ],
           ['assessTrackingId'],

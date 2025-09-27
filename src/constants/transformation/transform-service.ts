@@ -145,6 +145,7 @@ export class TransformService {
             CohortID: cohort.batchId,
             MemberStatus: cohort.cohortMemberStatus || 'active',
             AcademicYearID: cohort.academicYearId,
+            CohortMemberID: cohort.cohortMemberId,
           };
           cohortMembers.push(cohortMember);
         }

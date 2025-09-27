@@ -34,7 +34,7 @@ export class UserHandler {
       ) {
         const cohortMemberData =
           await this.transformService.transformCohortMemberData(data);
-
+        
         // Save each cohort member relationship with upsert logic
         for (const cohortMember of cohortMemberData) {
           const result = await this.dbService.upsertCohortMemberData(cohortMember);
