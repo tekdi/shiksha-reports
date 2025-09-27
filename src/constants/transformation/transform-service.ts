@@ -383,7 +383,7 @@ export class TransformService {
         totalScore: data.totalScore || 0,
         timeSpent: parseInt(String(data.timeSpent)) || 0,
         assessmentSummary: JSON.stringify(data.assessmentSummary),
-        numOfAttempt: 1,
+        attemptId: data.attemptId, // Use attemptId from source data
         assessmentType: data.assessmentType,
       };
 

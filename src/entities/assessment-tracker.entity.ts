@@ -54,4 +54,7 @@ export class AssessmentTracker {
     nullable: false,
   })
   assessmentType: string;
+
+  @Column({ name: 'AttemptID', type: 'text', nullable: true })
+  attemptId?: string;
 }

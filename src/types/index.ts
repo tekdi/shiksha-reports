@@ -167,6 +167,7 @@ export interface AssessmentTrackingData {
   assessmentSummary?: any;
   assessmentType?: string;
   scores?: AssessmentScoreData[];
+  attemptId?: string;
 }
 
 export interface AssessmentScoreData {
