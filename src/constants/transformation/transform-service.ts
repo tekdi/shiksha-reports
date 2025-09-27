@@ -383,7 +383,7 @@ export class TransformService {
         totalScore: data.totalScore || 0,
         timeSpent: parseInt(String(data.timeSpent)) || 0,
         assessmentSummary: JSON.stringify(data.assessmentSummary),
-        numOfAttempt: 1,
+        attemptId: data.attemptId, // Use attemptId from source data
         assessmentType: data.assessmentType,
       };
 
@@ -486,15 +486,20 @@ export class TransformService {
       // Process each tenant data to create registration tracker entries
       if (data.tenantData && Array.isArray(data.tenantData)) {
         for (const tenant of data.tenantData) {
-          const registrationTracker: Partial<RegistrationTracker> = {
-            userId: data.userId,
-            roleId: tenant.roleId,
-            tenantId: tenant.tenantId,
-            platformRegnDate: platformRegnDate,
-            tenantRegnDate: platformRegnDate, // Same as platform date for new registrations
-            isActive: true,
-          };
-          registrationTrackers.push(registrationTracker);
+          // Check if roles array exists and is an array
+          if (tenant.roles && Array.isArray(tenant.roles)) {
+            for (const role of tenant.roles) {
+              const registrationTracker: Partial<RegistrationTracker> = {
+                userId: data.userId,
+                roleId: role.roleId,
+                tenantId: tenant.tenantId,
+                platformRegnDate: platformRegnDate,
+                tenantRegnDate: platformRegnDate, // Same as platform date for new registrations
+                isActive: true,
+              };
+              registrationTrackers.push(registrationTracker);
+            }
+          }
         }
       }
 

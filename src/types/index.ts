@@ -25,12 +25,18 @@ export interface CohortData {
   batchId?: string;
 }
 
+export interface TenantRole {
+  roleId: string;
+  roleName?: string;
+}
+
 export interface TenantData {
   tenantId: string;
   tenantName?: string;
   name?: string;
   roleId?: string;
   roleName?: string;
+  roles?: TenantRole[]; // Added for new structure
   templateId?: string;
   contentFramework?: string;
   collectionFramework?: string;
@@ -161,6 +167,7 @@ export interface AssessmentTrackingData {
   assessmentSummary?: any;
   assessmentType?: string;
   scores?: AssessmentScoreData[];
+  attemptId?: string;
 }
 
 export interface AssessmentScoreData {
