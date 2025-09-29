@@ -14,7 +14,7 @@ export class AssessmentHandler {
   constructor(
     private readonly dbService: DatabaseService,
     private readonly transformService: TransformService,
-  ) {}
+  ) { }
 
   async handleAssessmentUpsert(data: AssessmentTrackingData) {
     try {
@@ -23,8 +23,7 @@ export class AssessmentHandler {
       validateString(data.userId, 'userId');
       validateString(data.tenantId, 'tenantId');
 
-      const identifier = data?.courseId; // Adjust key if it's nested elsewhere
-
+      const identifier = data?.courseId || data?.contentId; // Adjust key if it's nested elsewhere
       if (!identifier) {
         throw new Error('Identifier is required for API call');
       }
@@ -36,27 +35,33 @@ export class AssessmentHandler {
 
       const url = new URL('action/composite/v3/search', baseUrl);
 
-      const apiResponse = await axios.post(
-        url.toString(),
-        {
-          request: {
-            filters: {
-              identifier: [identifier],
-            },
+      const payload = {
+        request: {
+          filters: {
+            identifier: [identifier],
           },
         },
+      };
+
+      const apiResponse = await axios.post(
+        url.toString(),
+        payload,
         {
           timeout: 10000, // 10 second timeout
           headers: {
             'Content-Type': 'application/json',
           },
-        },
+        }
       );
 
-      if (!(apiResponse.data as any)?.result?.QuestionSet?.[0]) {
+      let externalData;
+      if ((apiResponse.data as any)?.result?.QuestionSet?.[0]) {
+        externalData = (apiResponse.data as any)?.result?.QuestionSet?.[0];
+      } else if ((apiResponse.data as any)?.result?.content?.[0]) {
+        externalData = apiResponse.data?.result?.content?.[0];
+      } else {
         throw new Error('Invalid API response structure or empty QuestionSet');
       }
-      const externalData = (apiResponse.data as any)?.result?.QuestionSet?.[0];
 
       const enrichedData = {
         ...data,
@@ -71,7 +76,7 @@ export class AssessmentHandler {
           ? externalData.subDomain[0]
           : externalData?.subDomain || null,
         channel: externalData?.channel || null,
-        assessmentType: externalData?.assessmentType || null,
+        assessmentType: externalData?.assessmentType || '-',
         program: Array.isArray(externalData?.program)
           ? externalData.program[0]
           : externalData?.program || null,
