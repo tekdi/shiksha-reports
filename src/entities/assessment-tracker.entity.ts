@@ -44,9 +44,6 @@ export class AssessmentTracker {
   @Column({ name: 'AssessmentSummary', type: 'text', nullable: true })
   assessmentSummary?: string;
 
-  @Column({ name: 'NumOfAttempt', type: 'int4', nullable: true, default: 0 })
-  numOfAttempt?: number;
-
   @Column({
     name: 'AssessmentType',
     type: 'varchar',
