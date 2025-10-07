@@ -411,7 +411,7 @@ export class TransformService {
         courseId: data.courseId,
         courseName: courseName,
         courseTrackingStatus: data.status,
-        certificateId: data.usercertificateId,
+        certificateId: data.certificateId || null,
         courseTrackingStartDate: data.createdOn
           ? new Date(data.createdOn)
           : undefined,
