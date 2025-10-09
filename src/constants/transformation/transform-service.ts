@@ -433,7 +433,7 @@ export class TransformService {
   ): Promise<Partial<ContentTracker>> {
     try {
       // Determine content tracking status based on details array
-      let contentTrackingStatus = 'in_progress'; // default
+      let contentTrackingStatus = 'inprogress'; // default
       let totalTimeSpent = 0;
 
       if (data.details && Array.isArray(data.details)) {
@@ -449,7 +449,7 @@ export class TransformService {
         if (hasEnd) {
           contentTrackingStatus = 'completed';
         } else if (hasStart) {
-          contentTrackingStatus = 'started';
+          contentTrackingStatus = 'enrolled';
         }
       }
 
