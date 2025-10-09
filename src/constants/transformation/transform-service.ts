@@ -449,7 +449,7 @@ export class TransformService {
         if (hasEnd) {
           contentTrackingStatus = 'completed';
         } else if (hasStart) {
-          contentTrackingStatus = 'enrolled';
+          contentTrackingStatus = 'started';
         }
       }
 
