@@ -524,4 +524,61 @@ export class DatabaseService {
       }
     }
   }
+
+
+  async updateCourseTrackerStatus(
+    params: {
+      tenantId: string;
+      userId: string;
+      courseId: string;
+      certificateId?: string | null;
+    },
+    update: {
+      status?: string;
+      completedOn?: Date | string | null;
+      createdOn?: Date | string | null;
+    },
+  ) {
+    let whereCondition: any = {
+      tenantId: params.tenantId,
+      userId: params.userId,
+      courseId: params.courseId,
+    };
+
+    // Only include certificateId in where clause if provided (including empty string)
+    if (params.certificateId !== undefined) {
+      whereCondition.certificateId = params.certificateId || null;
+    }
+
+    let existing = await this.courseTrackerRepo.findOne({ where: whereCondition });
+
+    // Fallback: if not found with provided certificateId, try without certificateId filter
+    if (!existing) {
+      whereCondition = {
+        tenantId: params.tenantId,
+        userId: params.userId,
+        courseId: params.courseId,
+      };
+      existing = await this.courseTrackerRepo.findOne({ where: whereCondition });
+    }
+
+    if (!existing) {
+      return { affected: 0 };
+    }
+
+    const updatePayload: Partial<CourseTracker> = {};
+    if (update.status !== undefined) {
+      updatePayload.courseTrackingStatus = update.status;
+    }
+    if (update.createdOn !== undefined && update.createdOn !== null) {
+      updatePayload.courseTrackingStartDate = new Date(update.createdOn);
+    }
+    if (update.completedOn !== undefined) {
+      updatePayload.courseTrackingEndDate = update.completedOn
+        ? new Date(update.completedOn)
+        : null as any;
+    }
+
+    return this.courseTrackerRepo.update(existing.courseTrackerId, updatePayload);
+  }
 }

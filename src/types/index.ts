@@ -155,6 +155,24 @@ export interface CourseEnrollmentData {
   completedOn?: string;
 }
 
+export interface CourseStatusUpdateData {
+  usercertificateId?: string;
+  certificateId?: string;
+  userId: string;
+  courseId: string;
+  tenantId: string;
+  status: string;
+  issuedOn?: string | null;
+  createdOn?: string;
+  createdAt?: string;
+  updatedOn?: string;
+  updatedAt?: string;
+  completedOn?: string | null;
+  completionPercentage?: number | null;
+  lastReadContentId?: string | null;
+  lastReadContentStatus?: string | null;
+  progress?: number | null;
+}
 export interface AssessmentTrackingData {
   assessmentTrackingId: string;
   contentId?: string;
