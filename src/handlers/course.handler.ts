@@ -67,15 +67,15 @@ export class CourseHandler {
       validateString(data.tenantId, 'tenantId');
       validateString(data.courseId, 'courseId');
       validateString(data.status, 'status');
-
+      validateString(data.certificateId, 'certificateId');
       // Map usercertificateId -> certificateId (if present)
-      const certificateId: string | undefined = data.usercertificateId || data.certificateId;
 
       // Optionally refresh course name if we don't have a record; here we only update existing
       const update = {
         status: data.status,
         createdOn: data.createdOn || data.createdAt || null,
         completedOn: data.completedOn || data.issuedOn || null,
+        certificateId: data.certificateId || null,
       };
 
       const result = await this.dbService.updateCourseTrackerStatus(
@@ -83,7 +83,6 @@ export class CourseHandler {
           tenantId: data.tenantId,
           userId: data.userId,
           courseId: data.courseId,
-          certificateId: certificateId,
         },
         update,
       );
