@@ -524,4 +524,55 @@ export class DatabaseService {
       }
     }
   }
+
+
+  async updateCourseTrackerStatus(
+    params: {
+      tenantId: string;
+      userId: string;
+      courseId: string;
+    },
+    update: {
+      status?: string;
+      completedOn?: Date | string | null;
+      createdOn?: Date | string | null;
+      certificateId?: string | null;
+    },
+  ) {
+    // WHERE condition uses only tenantId, userId, and courseId
+    const whereCondition = {
+      tenantId: params.tenantId,
+      userId: params.userId,
+      courseId: params.courseId,
+    };
+
+    const existing = await this.courseTrackerRepo.findOne({ where: whereCondition });
+
+    if (!existing) {
+      return { affected: 0 };
+    }
+
+    // Build update payload with all fields
+    const updatePayload: Partial<CourseTracker> = {};
+    
+    if (update.status !== undefined) {
+      updatePayload.courseTrackingStatus = update.status;
+    }
+    
+    if (update.createdOn !== undefined && update.createdOn !== null) {
+      updatePayload.courseTrackingStartDate = new Date(update.createdOn);
+    }
+    
+    if (update.completedOn !== undefined) {
+      updatePayload.courseTrackingEndDate = update.completedOn
+        ? new Date(update.completedOn)
+        : null as any;
+    }
+    
+    if (update.certificateId !== undefined) {
+      updatePayload.certificateId = update.certificateId || null;
+    }
+
+    return this.courseTrackerRepo.update(existing.courseTrackerId, updatePayload);
+  }
 }

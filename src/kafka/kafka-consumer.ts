@@ -150,6 +150,11 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
+    if (eventType === 'COURSE_STATUS_UPDATED') {
+      await this.handleCourseEvent(eventType, data);
+      return;
+    }
+
     // Special routing for content tracking events regardless of topic
     if (eventType === 'CONTENT_TRACKING_CREATED') {
       await this.handleContentEvent(eventType, data);
@@ -249,6 +254,8 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
     switch (eventType) {
       case 'COURSE_ENROLLMENT_CREATED':
         return this.courseHandler.handleCourseEnrollmentCreated(data);
+      case 'COURSE_STATUS_UPDATED':
+        return this.courseHandler.handleCourseStatusUpdated(data);
       default:
         this.logger.warn(`Unhandled assessment eventType: ${eventType}`);
     }
