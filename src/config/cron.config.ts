@@ -6,8 +6,8 @@ export default registerAs('cron', () => ({
   
   // Pratham Digital API configuration
   externalApi: {
-    baseUrl: process.env.EXTERNAL_API_BASE_URL || 'https://interface.prathamdigital.org',
-    endpoint: process.env.EXTERNAL_API_ENDPOINT || '/interface/v1/action/composite/v3/search',
+    baseUrl: process.env.MIDDLEWARE_SERVICE_BASE_URL || 'https://interface.prathamdigital.org',
+    endpoint: process.env.EXTERNAL_API_ENDPOINT || 'action/composite/v3/search',
     timeout: parseInt(process.env.EXTERNAL_API_TIMEOUT || '30000'), // 30 seconds
   },
   

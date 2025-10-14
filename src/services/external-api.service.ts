@@ -126,13 +126,35 @@ export class ExternalApiService {
   }
 
   /**
+   * Get previous day's date in IST timezone (YYYY-MM-DD format)
+   */
+  private getPreviousDayIST(): string {
+    // Get current UTC time
+    const now = new Date();
+    
+    // Convert to IST (UTC+5:30)
+    const istOffset = 5.5 * 60 * 60 * 1000; // 5.5 hours in milliseconds
+    const istTime = new Date(now.getTime() + istOffset);
+    
+    // Subtract 1 day
+    istTime.setDate(istTime.getDate() - 1);
+    
+    // Format as YYYY-MM-DD
+    const year = istTime.getFullYear();
+    const month = String(istTime.getMonth() + 1).padStart(2, '0');
+    const day = String(istTime.getDate()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}`;
+  }
+
+  /**
    * Make the actual API request
    */
   private async makeApiRequest(dataType: 'course' | 'questionSet'): Promise<AxiosResponse<PrathamApiResponse>> {
     const dataTypeConfig = this.config.dataTypes[dataType];
     
-    // Get date for filtering (current date or custom date)
-    const filterDate = this.config.dateFilter.customDate || new Date().toISOString().split('T')[0];
+    // Get date for filtering (custom date or previous day in IST)
+    const filterDate = this.config.dateFilter.customDate || this.getPreviousDayIST();
     
     // this.logger.info(`Making API request for ${dataType} data`, {
     //   date: filterDate,
@@ -145,7 +167,7 @@ export class ExternalApiService {
         filters: {
           status: ['Live'],
           primaryCategory: [dataTypeConfig.primaryCategory],
-          createdOn: filterDate, // Dynamic date - current date or custom date
+          createdOn: filterDate, // Previous day's date in IST or custom date from config
         },
         fields: dataTypeConfig.fields,
         limit: 2000, // Fetch all data in one request

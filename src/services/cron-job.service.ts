@@ -52,9 +52,9 @@ export class CronJobService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * Main cron job method - runs at 12 PM daily
+   * Main cron job method - runs at 12 AM IST (midnight) daily
    */
-  @Cron('0 12 * * *') // Runs at 12 PM daily
+  @Cron('30 18 * * *') // Runs at 12:00 AM IST (18:30 UTC = 00:00 IST)
   async executeCronJob() {
     if (this.jobStatus.isRunning) {
       this.logger.warn('Cron job is already running, skipping this execution');
