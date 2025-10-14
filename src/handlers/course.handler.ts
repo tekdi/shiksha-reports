@@ -60,6 +60,43 @@ export class CourseHandler {
     }
   }
 
+  async handleCourseStatusUpdated(data: any) {
+    try {
+      // Validate required identifiers
+      validateString(data.userId, 'userId');
+      validateString(data.tenantId, 'tenantId');
+      validateString(data.courseId, 'courseId');
+      validateString(data.status, 'status');
+      validateString(data.certificateId, 'certificateId');
+      // Map usercertificateId -> certificateId (if present)
+
+      // Optionally refresh course name if we don't have a record; here we only update existing
+      const update = {
+        status: data.status,
+        createdOn: data.createdOn || data.createdAt || null,
+        completedOn: data.completedOn || data.issuedOn || null,
+        certificateId: data.certificateId || null,
+      };
+
+      const result = await this.dbService.updateCourseTrackerStatus(
+        {
+          tenantId: data.tenantId,
+          userId: data.userId,
+          courseId: data.courseId,
+        },
+        update,
+      );
+
+      // No upsert fallback: only update existing record as requested
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        console.error('Validation failed in handleCourseStatusUpdated:', error.message);
+        throw new Error(`Validation failed: ${error.message}`);
+      }
+      console.error('Error handling course status update:', error);
+      throw error;
+    }
+  }
 
   //get courseName
   async getCourseName(courseId: string) {
