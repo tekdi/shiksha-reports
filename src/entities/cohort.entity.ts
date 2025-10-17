@@ -54,4 +54,7 @@ export class Cohort {
 
   @Column({ name: 'CoGoogleMapLink', type: 'text', nullable: true })
   coGoogleMapLink?: string;
+
+  @Column({ name: 'Status', type: 'text', nullable: true })
+  status?: string;
 }
