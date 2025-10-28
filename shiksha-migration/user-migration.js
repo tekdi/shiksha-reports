@@ -45,6 +45,17 @@ const FIELD_ID_TO_COLUMN_MAPPING = {
 };
 
 /**
+ * Mapping of field IDs to field names for UserMeta table
+ * These fields will be stored in UserMeta table as JSON with field names as keys
+ * Format: { "fieldId": "fieldName" }
+ */
+const USER_META_FIELD_ID_TO_NAME_MAPPING = {
+  'a736e2f0-4f9b-4249-8fe5-1ff36754dc97': 'JobFamily',
+  '432eb6dd-a92b-444f-ae75-42f604ad9a18': 'PSU',
+  '29c36dd1-315c-46d9-bf6a-f1858ae71c33': 'GroupMembership'
+};
+
+/**
  * Mapping of FieldName (original names) to destination column names
  * Allows mapping even if we only know the field names
  */
@@ -145,7 +156,7 @@ async function migrateCoreUserData(sourceClient, destClient) {
     SELECT u."userId", u.username, u."name", u.email, u.mobile, u.dob, u."createdAt", u."updatedAt", u."createdBy", u."updatedBy", u.status,
            u.district, u.state, u."firstName", u."middleName", u."lastName", u.gender, u."enrollmentId"
     FROM public."Users" u
-    LEFT JOIN public."UserTenantMapping" utm ON u."userId" = utm."userId" WHERE utm."tenantId" != 'fd8f3180-9988-495b-8a0d-ed201d7d28df' AND DATE(u."createdAt") BETWEEN '2025-09-26' AND '2025-09-27';
+    LEFT JOIN public."UserTenantMapping" utm ON u."userId" = utm."userId" WHERE utm."tenantId" = '914ca990-9b45-4385-a06b-05054f35d0b9';
     ;
   `;
   console.log(usersQuery);
@@ -273,9 +284,28 @@ async function migrateUserFieldValues(sourceClient, destClient, userId) {
 
   // Process field values strictly by fieldId mapping
   const userFieldValues = {};
+  const userMetaData = []; // Array to store metadata objects
   
   for (const row of fieldValuesResult.rows) {
     const { fieldId, value } = row;
+    
+    // Check if this fieldId should go to UserMeta table
+    const metaFieldName = USER_META_FIELD_ID_TO_NAME_MAPPING[fieldId];
+    if (metaFieldName) {
+      const convertedValue = getFirstValue(value);
+      // Only add to metadata if value is not null
+      if (convertedValue !== null && convertedValue !== undefined) {
+        // Store as array of objects with fieldId, fieldName, and value
+        userMetaData.push({
+          fieldId: fieldId,
+          fieldName: metaFieldName,
+          value: convertedValue
+        });
+      }
+      continue; // Skip regular column mapping for meta fields
+    }
+    
+    // Regular column mapping
     const columnName = FIELD_ID_TO_COLUMN_MAPPING[fieldId];
     if (!columnName) continue;
     const convertedValue = getFirstValue(value, columnName);
@@ -287,6 +317,13 @@ async function migrateUserFieldValues(sourceClient, destClient, userId) {
     await processUser(destClient, userId, userFieldValues);
   } else {
     console.log(`[USER MIGRATION] No mappable field values found for user ${userId}.`);
+  }
+  
+  // Insert metadata into UserMeta table
+  if (userMetaData.length > 0) {
+    await insertUserMeta(destClient, userId, userMetaData);
+  } else {
+    console.log(`[USER MIGRATION] No metadata fields found for user ${userId}.`);
   }
 }
 
@@ -334,6 +371,56 @@ async function processUser(destClient, userId, fieldData) {
     console.log(`[USER MIGRATION] Completed processing user: ${userId}`);
   } catch (error) {
     console.error(`[USER MIGRATION] Error processing user ${userId}:`, error);
+  }
+}
+
+/**
+ * Inserts or updates user metadata in the UserMeta table
+ * Only includes fields that have non-null values
+ * @param {Client} destClient - The client for the destination database
+ * @param {string} userId - The user ID
+ * @param {Array} metaData - Array of metadata objects with fieldId, fieldName, and value
+ *                          e.g., [{"fieldId": "...", "fieldName": "JobFamily", "value": "..."}]
+ */
+async function insertUserMeta(destClient, userId, metaData) {
+  try {
+    if (!metaData || !Array.isArray(metaData) || metaData.length === 0) {
+      console.log(`[USER MIGRATION] No metadata to insert for user ${userId}`);
+      return;
+    }
+
+    console.log(`[USER MIGRATION] Inserting metadata for user: ${userId}`);
+    
+    // First, check if a record exists for this user
+    const checkQuery = `SELECT "id" FROM public."UserMeta" WHERE "userId" = $1 LIMIT 1`;
+    const checkResult = await destClient.query(checkQuery, [userId]);
+    
+    if (checkResult.rows && checkResult.rows.length > 0) {
+      // Record exists, UPDATE it
+      const updateQuery = `
+        UPDATE public."UserMeta"
+        SET "metaData" = $2, "updatedAt" = NOW()
+        WHERE "userId" = $1
+        RETURNING "id"
+      `;
+      const result = await destClient.query(updateQuery, [userId, JSON.stringify(metaData)]);
+      if (result.rows && result.rows.length > 0) {
+        console.log(`[USER MIGRATION] ✅ Successfully updated UserMeta for user ${userId} with ${metaData.length} fields`);
+      }
+    } else {
+      // Record doesn't exist, INSERT it
+      const insertQuery = `
+        INSERT INTO public."UserMeta"("userId", "metaData", "createdAt", "updatedAt")
+        VALUES ($1, $2, NOW(), NOW())
+        RETURNING "id"
+      `;
+      const result = await destClient.query(insertQuery, [userId, JSON.stringify(metaData)]);
+      if (result.rows && result.rows.length > 0) {
+        console.log(`[USER MIGRATION] ✅ Successfully inserted UserMeta for user ${userId} with ${metaData.length} fields`);
+      }
+    }
+  } catch (error) {
+    console.error(`[USER MIGRATION] Error inserting UserMeta for user ${userId}:`, error);
   }
 }
 
