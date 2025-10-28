@@ -10,6 +10,7 @@ import { TransformService } from './constants/transformation/transform-service';
 import { CourseHandler } from './handlers/course.handler';
 import { Course } from './entities/course.entity';
 import { QuestionSet } from './entities/question-set.entity';
+import { Content } from './entities/content.entity';
 import { ExternalApiService } from './services/external-api.service';
 import { CronJobService } from './services/cron-job.service';
 import { CronJobController } from './controllers/cron-job.controller';
@@ -75,6 +76,7 @@ import { RegistrationTracker } from './entities/registration-tracker.entity';
       RegistrationTracker,
       Course, // Add Course entity for cron job service
       QuestionSet, // Add QuestionSet entity for future use
+      Content, // Add Content entity for cron job service
     ]),
   ],
   controllers: [

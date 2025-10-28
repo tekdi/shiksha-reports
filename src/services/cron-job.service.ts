@@ -5,6 +5,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Course } from '../entities/course.entity';
 import { QuestionSet } from '../entities/question-set.entity';
+import { Content } from '../entities/content.entity';
 import { ExternalApiService } from './external-api.service';
 import { TransformService } from '../constants/transformation/transform-service';
 import { DatabaseService } from './database.service';
@@ -31,6 +32,8 @@ export class CronJobService implements OnModuleInit, OnModuleDestroy {
     private readonly courseRepo: Repository<Course>,
     @InjectRepository(QuestionSet)
     private readonly questionSetRepo: Repository<QuestionSet>,
+    @InjectRepository(Content)
+    private readonly contentRepo: Repository<Content>,
   ) {
     this.config = this.configService.get('cron');
   }
@@ -76,6 +79,9 @@ export class CronJobService implements OnModuleInit, OnModuleDestroy {
       
       // Process QuestionSet data
       await this.processQuestionSetData();
+
+      // Process Content data
+      await this.processContentData();
 
       this.jobStatus.lastSuccess = new Date();
       this.jobStatus.successfulExecutions++;
@@ -197,6 +203,56 @@ export class CronJobService implements OnModuleInit, OnModuleDestroy {
     return { totalProcessed, duration };
   }
 
+  /**
+   * Process content data from Pratham Digital API
+   */
+  private async processContentData(): Promise<{
+    totalProcessed: number;
+    duration: number;
+  }> {
+    const startTime = Date.now();
+    let totalProcessed = 0;
+
+    try {
+      this.logger.info('Fetching content data from Pratham Digital API');
+
+      // Fetch data from external API
+      const apiResponse = await this.externalApiService.fetchContentData();
+
+      if (!apiResponse.success || !apiResponse.data || apiResponse.data.length === 0) {
+        this.logger.info('No content data available from Pratham Digital API', {
+          success: apiResponse.success,
+          dataLength: apiResponse.data?.length || 0,
+        });
+        return { totalProcessed: 0, duration: Date.now() - startTime };
+      }
+
+      this.logger.info(`Processing ${apiResponse.data.length} content items`);
+
+      // Transform and save each content item individually
+      for (const contentData of apiResponse.data) {
+        try {
+          const transformedContent = await this.transformService.transformContentData(contentData);
+          await this.saveContentData(transformedContent);
+          totalProcessed++;
+        } catch (error) {
+          this.logger.error('Failed to process content data', error, {
+            identifier: contentData.identifier,
+          });
+        }
+      }
+
+      this.logger.info(`Successfully processed ${totalProcessed} content items`);
+
+    } catch (error) {
+      this.logger.error('Failed to process content data', error);
+      throw error;
+    }
+
+    const duration = Date.now() - startTime;
+    return { totalProcessed, duration };
+  }
+
 
 
   /**
@@ -260,6 +316,39 @@ export class CronJobService implements OnModuleInit, OnModuleDestroy {
     } catch (error) {
       this.logger.error('Failed to save question set data', error, {
         identifier: questionSetData.identifier,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Save content data to database
+   */
+  private async saveContentData(contentData: Partial<Content>): Promise<void> {
+    try {
+      // Check if content already exists
+      const existingContent = await this.contentRepo.findOne({
+        where: { identifier: contentData.identifier }
+      });
+
+      if (existingContent) {
+        // Update existing content
+        await this.contentRepo.update(
+          { identifier: contentData.identifier },
+          {
+            ...contentData,
+            updated_at: new Date(),
+          }
+        );
+        this.logger.debug('Updated existing content', { identifier: contentData.identifier });
+      } else {
+        // Create new content
+        await this.contentRepo.save(contentData);
+        this.logger.debug('Created new content', { identifier: contentData.identifier });
+      }
+    } catch (error) {
+      this.logger.error('Failed to save content data', error, {
+        identifier: contentData.identifier,
       });
       throw error;
     }

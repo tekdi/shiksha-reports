@@ -104,9 +104,32 @@ export interface ExternalQuestionSetData {
   language?: string[] | string;
 }
 
+// Content data interface for API responses
+export interface ExternalContentData {
+  identifier: string;
+  name?: string;
+  author?: string;
+  primaryCategory?: string;
+  channel?: string;
+  status?: string;
+  contentType?: string;
+  contentLanguage?: string[] | string;
+  domains?: string[] | string;
+  subdomains?: string[] | string;
+  subjects?: string[] | string;
+  targetAgeGroup?: string[] | string;
+  audience?: string[] | string;
+  program?: string[] | string;
+  keywords?: string[] | string;
+  description?: string;
+  createdBy?: string;
+  lastPublishedOn?: string | Date;
+  createdOn?: string | Date;
+}
+
 export interface ExternalApiResponse {
   success: boolean;
-  data?: ExternalCourseData[] | ExternalQuestionSetData[];
+  data?: ExternalCourseData[] | ExternalQuestionSetData[] | ExternalContentData[];
   error?: string;
 }
 
@@ -119,6 +142,12 @@ export interface ExternalCourseApiResponse {
 export interface ExternalQuestionSetApiResponse {
   success: boolean;
   data?: ExternalQuestionSetData[];
+  error?: string;
+}
+
+export interface ExternalContentApiResponse {
+  success: boolean;
+  data?: ExternalContentData[];
   error?: string;
 }
 
