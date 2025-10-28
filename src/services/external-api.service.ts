@@ -245,7 +245,7 @@ export class ExternalApiService {
         author: item.author || null,
         primaryuser: null, // Not available in Pratham API
         se_domains: item.se_domains ? JSON.stringify(item.se_domains) : null,
-        contentlanguage: item.language ? JSON.stringify(item.language) : null,
+        contentlanguage: item.contentLanguage ? JSON.stringify(item.contentLanguage) : null,
         status: item.status ? item.status.toLowerCase() : 'live',
         targetagegroup: item.targetAgeGroup ? JSON.stringify(item.targetAgeGroup) : null,
         se_subdomains: null, // Not available in Pratham API
@@ -274,7 +274,7 @@ export class ExternalApiService {
         createdOn: item.createdOn || item.CreatedOn || null,
         program: item.program || item.Program || null,
         assessmentType: item.assessmentType || item.AssessmentType || null,
-        contentLanguage: item.language || item.contentLanguage || item.Language || item.ContentLanguage || null,
+        contentLanguage: item.contentLanguage || null,
         se_domains: item.se_domains || item.Domain || item.domain || null,
         se_subdomains: item.se_subdomains || item.subDomain || item.SubDomain || null,
         se_subjects: item.se_subjects || item.subject || item.Subject || null,
