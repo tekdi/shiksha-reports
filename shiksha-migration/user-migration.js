@@ -45,11 +45,11 @@ const FIELD_ID_TO_COLUMN_MAPPING = {
 };
 
 /**
- * Mapping of field IDs to field names for UserMeta table
- * These fields will be stored in UserMeta table as JSON with field names as keys
- * Format: { "fieldId": "fieldName" }
+ * Mapping of field IDs to field names for UserCustomField column
+ * These fields will be stored in Users.UserCustomField column as JSON array
+ * Format: [{"fieldId": "...", "fieldName": "...", "filedValue": "..."}]
  */
-const USER_META_FIELD_ID_TO_NAME_MAPPING = {
+const CUSTOM_FIELD_ID_TO_NAME_MAPPING = {
   'a736e2f0-4f9b-4249-8fe5-1ff36754dc97': 'JobFamily',
   '432eb6dd-a92b-444f-ae75-42f604ad9a18': 'PSU',
   '29c36dd1-315c-46d9-bf6a-f1858ae71c33': 'GroupMembership'
@@ -284,25 +284,25 @@ async function migrateUserFieldValues(sourceClient, destClient, userId) {
 
   // Process field values strictly by fieldId mapping
   const userFieldValues = {};
-  const userMetaData = []; // Array to store metadata objects
+  const userCustomFields = []; // Array to store custom field objects
   
   for (const row of fieldValuesResult.rows) {
     const { fieldId, value } = row;
     
-    // Check if this fieldId should go to UserMeta table
-    const metaFieldName = USER_META_FIELD_ID_TO_NAME_MAPPING[fieldId];
-    if (metaFieldName) {
+    // Check if this fieldId should go to UserCustomField column
+    const customFieldName = CUSTOM_FIELD_ID_TO_NAME_MAPPING[fieldId];
+    if (customFieldName) {
       const convertedValue = getFirstValue(value);
-      // Only add to metadata if value is not null
+      // Only add to custom fields if value is not null
       if (convertedValue !== null && convertedValue !== undefined) {
-        // Store as array of objects with fieldId, fieldName, and value
-        userMetaData.push({
+        // Store as array of objects with fieldId, fieldName, and filedValue
+        userCustomFields.push({
           fieldId: fieldId,
-          fieldName: metaFieldName,
-          value: convertedValue
+          fieldName: customFieldName,
+          filedValue: convertedValue
         });
       }
-      continue; // Skip regular column mapping for meta fields
+      continue; // Skip regular column mapping for custom fields
     }
     
     // Regular column mapping
@@ -312,18 +312,16 @@ async function migrateUserFieldValues(sourceClient, destClient, userId) {
     userFieldValues[columnName] = convertedValue;
   }
   
+  // Add UserCustomField to the update if there are custom fields
+  if (userCustomFields.length > 0) {
+    userFieldValues['UserCustomField'] = JSON.stringify(userCustomFields);
+  }
+  
   // Update this user's record in the destination database
   if (Object.keys(userFieldValues).length > 0) {
     await processUser(destClient, userId, userFieldValues);
   } else {
     console.log(`[USER MIGRATION] No mappable field values found for user ${userId}.`);
-  }
-  
-  // Insert metadata into UserMeta table
-  if (userMetaData.length > 0) {
-    await insertUserMeta(destClient, userId, userMetaData);
-  } else {
-    console.log(`[USER MIGRATION] No metadata fields found for user ${userId}.`);
   }
 }
 
@@ -350,7 +348,12 @@ async function processUser(destClient, userId, fieldData) {
     let paramIndex = 2;
     
     for (const [columnName, value] of Object.entries(fieldData)) {
-      setClause.push(`"${columnName}" = $${paramIndex}`);
+      // For UserCustomField, cast to JSONB since it contains JSON string
+      if (columnName === 'UserCustomField') {
+        setClause.push(`"${columnName}" = $${paramIndex}::jsonb`);
+      } else {
+        setClause.push(`"${columnName}" = $${paramIndex}`);
+      }
       values.push(value);
       paramIndex++;
     }
@@ -375,54 +378,11 @@ async function processUser(destClient, userId, fieldData) {
 }
 
 /**
- * Inserts or updates user metadata in the UserMeta table
- * Only includes fields that have non-null values
- * @param {Client} destClient - The client for the destination database
- * @param {string} userId - The user ID
- * @param {Array} metaData - Array of metadata objects with fieldId, fieldName, and value
- *                          e.g., [{"fieldId": "...", "fieldName": "JobFamily", "value": "..."}]
+ * NOTE: insertUserMeta function removed
+ * Custom fields (JobFamily, PSU, GroupMembership) are now stored in the 
+ * Users.UserCustomField column instead of a separate UserMeta table.
+ * See migrateUserFieldValues function for the implementation.
  */
-async function insertUserMeta(destClient, userId, metaData) {
-  try {
-    if (!metaData || !Array.isArray(metaData) || metaData.length === 0) {
-      console.log(`[USER MIGRATION] No metadata to insert for user ${userId}`);
-      return;
-    }
-
-    console.log(`[USER MIGRATION] Inserting metadata for user: ${userId}`);
-    
-    // First, check if a record exists for this user
-    const checkQuery = `SELECT "id" FROM public."UserMeta" WHERE "userId" = $1 LIMIT 1`;
-    const checkResult = await destClient.query(checkQuery, [userId]);
-    
-    if (checkResult.rows && checkResult.rows.length > 0) {
-      // Record exists, UPDATE it
-      const updateQuery = `
-        UPDATE public."UserMeta"
-        SET "metaData" = $2, "updatedAt" = NOW()
-        WHERE "userId" = $1
-        RETURNING "id"
-      `;
-      const result = await destClient.query(updateQuery, [userId, JSON.stringify(metaData)]);
-      if (result.rows && result.rows.length > 0) {
-        console.log(`[USER MIGRATION] ✅ Successfully updated UserMeta for user ${userId} with ${metaData.length} fields`);
-      }
-    } else {
-      // Record doesn't exist, INSERT it
-      const insertQuery = `
-        INSERT INTO public."UserMeta"("userId", "metaData", "createdAt", "updatedAt")
-        VALUES ($1, $2, NOW(), NOW())
-        RETURNING "id"
-      `;
-      const result = await destClient.query(insertQuery, [userId, JSON.stringify(metaData)]);
-      if (result.rows && result.rows.length > 0) {
-        console.log(`[USER MIGRATION] ✅ Successfully inserted UserMeta for user ${userId} with ${metaData.length} fields`);
-      }
-    }
-  } catch (error) {
-    console.error(`[USER MIGRATION] Error inserting UserMeta for user ${userId}:`, error);
-  }
-}
 
 // Run the migration only if this script is run directly (not imported)
 if (require.main === module) {
