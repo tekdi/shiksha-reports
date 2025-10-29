@@ -10,10 +10,8 @@ import {
 export class Event {
   @PrimaryGeneratedColumn('increment')
   id: number;
-
   @Column({ type: 'varchar', length: 100 })
   eventDetailId: string;
-
   @Column({ type: 'varchar', length: 255, nullable: true })
   title: string | null;
 
@@ -73,7 +71,6 @@ export class Event {
 
   @Column({ type: 'jsonb', nullable: true })
   attendees: any | null;
-
   @Column({ type: 'varchar', length: 100, nullable: true })
   eventId: string | null;
 
@@ -85,15 +82,6 @@ export class Event {
 
   @Column({ type: 'jsonb', nullable: true })
   onlineDetails: any | null;
-
-  @Column({ type: 'boolean', default: false })
-  isRecurring: boolean;
-
-  @Column({ type: 'timestamptz', nullable: true })
-  recurrenceEndDate: Date | null;
-
-  @Column({ type: 'jsonb', nullable: true })
-  recurrencePattern: any | null;
 
   @Column({ type: 'boolean', default: false })
   autoEnroll: boolean;

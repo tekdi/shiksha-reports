@@ -122,16 +122,14 @@ async function migrateEvents({ limit = 10000, offset = 0 } = {}) {
         recordings, status, description, "meetingDetails", "createdBy", "updatedBy",
         "idealTime", metadata, attendees, "eventId",
         "startDateTime", "endDateTime", "onlineDetails",
-        "isRecurring", "recurrenceEndDate", "recurrencePattern", "autoEnroll",
-        "registrationStartDate", "registrationEndDate", extra
+        "autoEnroll", "registrationStartDate", "registrationEndDate", extra
       ) VALUES (
         $1,$2,$3,$4,$5,
         $6,$7,$8,$9,$10,
         $11::jsonb,$12,$13,$14::jsonb,$15,$16,
         $17,$18::jsonb,$19::jsonb,$20,
         $21,$22,$23::jsonb,
-        $24,$25,$26::jsonb,$27,
-        $28,$29,$30::jsonb
+        $24,$25,$26,$27::jsonb
       )
     `;
 
@@ -160,9 +158,6 @@ async function migrateEvents({ limit = 10000, offset = 0 } = {}) {
         coerceDate(r.start_dt),
         coerceDate(r.end_dt),
         coerceJson(r.online_details),
-        !!r.is_recurring,
-        coerceDate(r.recurrence_end_date),
-        coerceJson(r.recurrence_pattern),
         !!r.auto_enroll,
         coerceDate(r.reg_start),
         coerceDate(r.reg_end),
