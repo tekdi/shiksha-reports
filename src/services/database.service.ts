@@ -5,8 +5,6 @@ import { User } from '../entities/user.entity';
 
 import { DailyAttendanceReport } from 'src/entities/daily-attendance-report.entity';
 import { Event } from 'src/entities/event.entity';
-import { EventDetails } from 'src/entities/event-details.entity';
-import { EventRepetition } from 'src/entities/event-repetition.entity';
 import { CohortMember } from 'src/entities/cohort-member.entity';
 import { Cohort } from 'src/entities/cohort.entity';
 import { AttendanceTracker } from 'src/entities/attendance-tracker.entity';
@@ -24,10 +22,6 @@ export class DatabaseService {
     private dailyAttendanceRepo: Repository<DailyAttendanceReport>,
     @InjectRepository(Event)
     private eventRepo: Repository<Event>,
-    @InjectRepository(EventDetails)
-    private eventDetailsRepo: Repository<EventDetails>,
-    @InjectRepository(EventRepetition)
-    private eventRepetitionRepo: Repository<EventRepetition>,
     @InjectRepository(CohortMember)
     private cohortMemberRepo: Repository<CohortMember>,
     @InjectRepository(Cohort)
@@ -64,22 +58,13 @@ export class DatabaseService {
 
 
 
-  async saveEventDetailsData(data: any) {
-    return this.eventDetailsRepo.save(data);
-  }
-
   async saveEventData(data: any) {
     return this.eventRepo.save(data);
   }
 
-  async saveEventRepetitionData(data: any) {
-    return this.eventRepetitionRepo.save(data);
-  }
-
   async deleteEventData(data: { eventDetailId: string }) {
     const { eventDetailId } = data;
-    await this.eventRepetitionRepo.delete({ eventDetailId });
-    return this.eventDetailsRepo.delete({ eventDetailId });
+    return this.eventRepo.delete({ eventDetailId });
   }
 
   async saveCohortMemberData(data: any) {

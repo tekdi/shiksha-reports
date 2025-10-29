@@ -57,6 +57,20 @@ const dbConfig = {
     host: process.env.USER_DESTINATION_DB_HOST,
     port: parseInt(process.env.USER_DESTINATION_DB_PORT || '5432'),
     database: process.env.USER_DESTINATION_DB_NAME
+  },
+  event_source: {
+    user: process.env.EVENT_SOURCE_DB_USER,
+    password: process.env.EVENT_SOURCE_DB_PASSWORD,
+    host: process.env.EVENT_SOURCE_DB_HOST,
+    port: parseInt(process.env.EVENT_SOURCE_DB_PORT || '5432'),
+    database: process.env.EVENT_SOURCE_DB_NAME
+  },
+  event_destination: { 
+    user: process.env.EVENT_DESTINATION_DB_USER,
+    password: process.env.EVENT_DESTINATION_DB_PASSWORD,
+    host: process.env.EVENT_DESTINATION_DB_HOST,
+    port: parseInt(process.env.EVENT_DESTINATION_DB_PORT || '5432'),
+    database: process.env.EVENT_DESTINATION_DB_NAME
   }
 };
 

@@ -132,21 +132,40 @@ CREATE TABLE "EventDetails" (
     "attendees" text[]
 );
 
--- Events Table
 CREATE TABLE "Events" (
-    "eventId" uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-    "isRecurring" boolean DEFAULT false,
+    id SERIAL PRIMARY KEY,
+    "eventDetailId" VARCHAR(100) NOT NULL,
+    title VARCHAR(255),
+    "shortDescription" TEXT,
+    "eventType" VARCHAR(100),
+    "isRestricted" BOOLEAN DEFAULT FALSE,
+    location VARCHAR(255),
+    longitude DECIMAL(10, 7),
+    latitude DECIMAL(10, 7),
+    "onlineProvider" VARCHAR(100),
+    "maxAttendees" INT,
+    recordings JSONB,
+    status VARCHAR(50),
+    description TEXT,
+    "createdAt" TIMESTAMP DEFAULT NOW(),
+    "updatedAt" TIMESTAMP DEFAULT NOW(),
+    "meetingDetails" JSONB,
+    "createdBy" VARCHAR(100),
+    "updatedBy" VARCHAR(100),
+    "idealTime" VARCHAR(50),
+    metadata JSONB,
+    attendees JSONB,
+    "eventId" VARCHAR(100),
+    "startDateTime" TIMESTAMP,
+    "endDateTime" TIMESTAMP,
+    "onlineDetails" JSONB,
+    "isRecurring" BOOLEAN DEFAULT FALSE,
     "recurrenceEndDate" timestamptz,
-    "recurrencePattern" jsonb NOT NULL,
-    "createdAt" timestamp NOT NULL DEFAULT now(),
-    "updatedAt" timestamp NOT NULL DEFAULT now(),
-    "autoEnroll" boolean DEFAULT false,
+    "recurrencePattern" jsonb,
+    "autoEnroll" BOOLEAN DEFAULT FALSE,
     "registrationStartDate" timestamptz,
     "registrationEndDate" timestamptz,
-    "createdBy" uuid,
-    "updatedBy" uuid,
-    "eventDetailId" uuid,
-    CONSTRAINT "FK_Events_EventDetails" FOREIGN KEY ("eventDetailId") REFERENCES "EventDetails"("eventDetailId")
+    extra JSONB
 );
 
 -- Event Repetition Table

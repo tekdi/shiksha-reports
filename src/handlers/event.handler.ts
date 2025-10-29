@@ -36,59 +36,65 @@ export class EventHandler {
       }
       throw error;
     }
-    const eventDetailsData = {
-      eventDetailId: data.eventDetailsData.eventDetailId,
-      title: data.eventDetailsData.title,
-      shortDescription: data.eventDetailsData.shortDescription,
-      eventType: data.eventDetailsData.eventType,
-      isRestricted: data.eventDetailsData.isRestricted,
-      location: data.eventDetailsData.location,
-      longitude: data.eventDetailsData.longitude,
-      latitude: data.eventDetailsData.latitude,
-      onlineProvider: data.eventDetailsData.onlineProvider,
-      maxAttendees: data.eventDetailsData.maxAttendees,
-      recordings: data.eventDetailsData.recordings,
-      status: data.eventDetailsData.status,
-      description: data.eventDetailsData.description,
-      meetingDetails: data.eventDetailsData.meetingDetails,
-      createdBy: data.eventDetailsData.createdBy,
-      updatedBy: data.eventDetailsData.updatedBy,
-      idealTime: data.eventDetailsData.idealTime,
-      metadata: data.eventDetailsData.metadata,
-      attendees: data.eventDetailsData.attendees,
-    };
-    const savedEventDetails =
-      await this.dbService.saveEventDetailsData(eventDetailsData);
 
-    const eventData = {
-      eventId: data.eventData.eventId,
-      isRecurring: data.eventData.isRecurring,
-      recurrenceEndDate: data.eventData.recurrenceEndDate,
-      recurrencePattern: data.eventData.recurrencePattern,
-      autoEnroll: data.eventData.autoEnroll,
-      registrationStartDate: data.eventData.registrationStartDate,
-      registrationEndDate: data.eventData.registrationEndDate,
-      createdBy: data.eventData.createdBy,
-      updatedBy: data.eventData.updatedBy,
-      eventDetailId: savedEventDetails.eventDetailId,
+    // Coercion helpers to ensure correct types
+    const coerceString = (v: any) =>
+      v === undefined || v === null ? null : String(v);
+    const coerceDecimal = (v: any) =>
+      v === undefined || v === null || v === '' ? null : String(v);
+    const coerceDate = (v: any) => (v ? new Date(v) : null);
+    const coerceJson = (v: any) => {
+      if (v === undefined || v === null || v === '') return null;
+      if (typeof v === 'string') {
+        try {
+          return JSON.parse(v);
+        } catch {
+          return v;
+        }
+      }
+      return v;
     };
-    const savedEvent = await this.dbService.saveEventData(eventData);
 
-    const eventRepertation = data.eventRepetitionData.map(
-      async (eventRepetitionData) => {
-        const eventRepetitionAllData = {
-          eventRepetitionId: eventRepetitionData.eventRepetitionId,
-          eventId: savedEvent.eventId,
-          eventDetailId: savedEventDetails.eventDetailId,
-          onlineDetails: eventRepetitionData.onlineDetails,
-          startDateTime: eventRepetitionData.startDateTime,
-          endDateTime: eventRepetitionData.endDateTime,
-          createdBy: eventRepetitionData.createdBy,
-          updatedBy: eventRepetitionData.updatedBy,
-          erMetaData: eventRepetitionData.erMetaData,
-        };
-        await this.dbService.saveEventRepetitionData(eventRepetitionAllData);
-      },
+    // Single table flow: directly save into Events for each repetition
+    await Promise.all(
+      data.eventRepetitionData.map(async (eventRepetitionData) => {
+        await this.dbService.saveEventData({
+          eventDetailId: coerceString(data.eventDetailsData.eventDetailId)!,
+          title: coerceString(data.eventDetailsData.title),
+          shortDescription: coerceString(
+            data.eventDetailsData.shortDescription,
+          ),
+          eventType: coerceString(data.eventDetailsData.eventType),
+          isRestricted: !!data.eventDetailsData.isRestricted,
+          location: coerceString(data.eventDetailsData.location),
+          longitude: coerceDecimal(data.eventDetailsData.longitude) as any,
+          latitude: coerceDecimal(data.eventDetailsData.latitude) as any,
+          onlineProvider: coerceString(data.eventDetailsData.onlineProvider),
+          maxAttendees: data.eventDetailsData.maxAttendees ?? null,
+          recordings: coerceJson(data.eventDetailsData.recordings),
+          status: coerceString(data.eventDetailsData.status),
+          description: coerceString(data.eventDetailsData.description),
+          meetingDetails: coerceJson(data.eventDetailsData.meetingDetails),
+          createdBy: coerceString(data.eventDetailsData.createdBy),
+          updatedBy: coerceString(data.eventDetailsData.updatedBy),
+          idealTime: coerceString(data.eventDetailsData.idealTime),
+          metadata: coerceJson(data.eventDetailsData.metadata),
+          attendees: coerceJson(data.eventDetailsData.attendees),
+          eventId: coerceString(data.eventData.eventId),
+          startDateTime: coerceDate(eventRepetitionData.startDateTime),
+          endDateTime: coerceDate(eventRepetitionData.endDateTime),
+          onlineDetails: coerceJson(eventRepetitionData.onlineDetails),
+          isRecurring: !!data.eventData.isRecurring,
+          recurrenceEndDate: coerceDate(data.eventData.recurrenceEndDate),
+          recurrencePattern: coerceJson(data.eventData.recurrencePattern),
+          autoEnroll: !!data.eventData.autoEnroll,
+          extra: coerceJson((data as any).extra),
+          registrationStartDate: coerceDate(
+            data.eventData.registrationStartDate,
+          ),
+          registrationEndDate: coerceDate(data.eventData.registrationEndDate),
+        });
+      }),
     );
   }
 
