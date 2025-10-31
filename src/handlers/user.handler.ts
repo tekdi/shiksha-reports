@@ -19,7 +19,6 @@ export class UserHandler {
     try {
       // Validate required fields
       validateString(data.userId, 'userId');
-
       // Transform and save user data
       const transformedUserData =
         await this.transformService.transformUserData(data);
