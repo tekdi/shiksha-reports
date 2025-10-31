@@ -17,7 +17,7 @@ export default registerAs('cron', () => ({
       primaryCategory: 'Course',
       fields: [
         'identifier', 'name', 'author', 'primaryCategory', 'channel', 'status',
-        'contentType', 'language', 'se_domains', 'se_subdomains', 'se_subjects',
+        'contentType', 'contentLanguage', 'se_domains', 'se_subdomains', 'se_subjects',
         'targetAgeGroup', 'audience', 'program', 'keywords', 'description',
         'createdBy', 'lastPublishedOn', 'childNodes', 'appIcon', 'posterImage', 'createdOn'
       ]
