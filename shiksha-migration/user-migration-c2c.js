@@ -163,6 +163,7 @@ async function migrateCoreUserData(sourceClient, destClient) {
   console.log('[USER MIGRATION] ✅ Finished core user data migration.');
 }
 
+
 async function processCoreUser(destClient, user) {
   try {
     console.log(`[USER MIGRATION] Processing core user: ${user.userId}`);
