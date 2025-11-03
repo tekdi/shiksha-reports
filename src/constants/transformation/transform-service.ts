@@ -36,8 +36,7 @@ export class TransformService {
         if (!data.customFields || !Array.isArray(data.customFields)) {
           return null;
         }
-
-        const field = data.customFields.find((f: any) => f.label === label);
+        const field = data?.customFields.find((f: any) => f?.label === label);
 
         if (
           !field ||
@@ -58,7 +57,7 @@ export class TransformService {
           selectedValue !== null
         ) {
           // Return the 'value' property if it exists, otherwise 'id'
-          return selectedValue.id || null;
+          return selectedValue.id ;
         }
 
         return null;

@@ -45,6 +45,17 @@ const FIELD_ID_TO_COLUMN_MAPPING = {
 };
 
 /**
+ * Mapping of field IDs to field names for UserCustomField column
+ * These fields will be stored in Users.UserCustomField column as JSON array
+ * Format: [{"fieldId": "...", "fieldName": "...", "filedValue": "..."}]
+ */
+const CUSTOM_FIELD_ID_TO_NAME_MAPPING = {
+  'a736e2f0-4f9b-4249-8fe5-1ff36754dc97': 'JobFamily',
+  '432eb6dd-a92b-444f-ae75-42f604ad9a18': 'PSU',
+  '29c36dd1-315c-46d9-bf6a-f1858ae71c33': 'GroupMembership'
+};
+
+/**
  * Mapping of FieldName (original names) to destination column names
  * Allows mapping even if we only know the field names
  */
@@ -145,7 +156,7 @@ async function migrateCoreUserData(sourceClient, destClient) {
     SELECT u."userId", u.username, u."name", u.email, u.mobile, u.dob, u."createdAt", u."updatedAt", u."createdBy", u."updatedBy", u.status,
            u.district, u.state, u."firstName", u."middleName", u."lastName", u.gender, u."enrollmentId"
     FROM public."Users" u
-    LEFT JOIN public."UserTenantMapping" utm ON u."userId" = utm."userId" WHERE utm."tenantId" != 'fd8f3180-9988-495b-8a0d-ed201d7d28df' AND DATE(u."createdAt") BETWEEN '2025-09-26' AND '2025-09-27';
+    LEFT JOIN public."UserTenantMapping" utm ON u."userId" = utm."userId" WHERE utm."tenantId" = '914ca990-9b45-4385-a06b-05054f35d0b9';
     ;
   `;
   console.log(usersQuery);
@@ -273,13 +284,37 @@ async function migrateUserFieldValues(sourceClient, destClient, userId) {
 
   // Process field values strictly by fieldId mapping
   const userFieldValues = {};
+  const userCustomFields = []; // Array to store custom field objects
   
   for (const row of fieldValuesResult.rows) {
     const { fieldId, value } = row;
+    
+    // Check if this fieldId should go to UserCustomField column
+    const customFieldName = CUSTOM_FIELD_ID_TO_NAME_MAPPING[fieldId];
+    if (customFieldName) {
+      const convertedValue = getFirstValue(value);
+      // Only add to custom fields if value is not null
+      if (convertedValue !== null && convertedValue !== undefined) {
+        // Store as array of objects with fieldId, fieldName, and filedValue
+        userCustomFields.push({
+          fieldId: fieldId,
+          fieldName: customFieldName,
+          filedValue: convertedValue
+        });
+      }
+      continue; // Skip regular column mapping for custom fields
+    }
+    
+    // Regular column mapping
     const columnName = FIELD_ID_TO_COLUMN_MAPPING[fieldId];
     if (!columnName) continue;
     const convertedValue = getFirstValue(value, columnName);
     userFieldValues[columnName] = convertedValue;
+  }
+  
+  // Add UserCustomField to the update if there are custom fields
+  if (userCustomFields.length > 0) {
+    userFieldValues['UserCustomField'] = JSON.stringify(userCustomFields);
   }
   
   // Update this user's record in the destination database
@@ -313,7 +348,12 @@ async function processUser(destClient, userId, fieldData) {
     let paramIndex = 2;
     
     for (const [columnName, value] of Object.entries(fieldData)) {
-      setClause.push(`"${columnName}" = $${paramIndex}`);
+      // For UserCustomField, cast to JSONB since it contains JSON string
+      if (columnName === 'UserCustomField') {
+        setClause.push(`"${columnName}" = $${paramIndex}::jsonb`);
+      } else {
+        setClause.push(`"${columnName}" = $${paramIndex}`);
+      }
       values.push(value);
       paramIndex++;
     }
@@ -336,6 +376,13 @@ async function processUser(destClient, userId, fieldData) {
     console.error(`[USER MIGRATION] Error processing user ${userId}:`, error);
   }
 }
+
+/**
+ * NOTE: insertUserMeta function removed
+ * Custom fields (JobFamily, PSU, GroupMembership) are now stored in the 
+ * Users.UserCustomField column instead of a separate UserMeta table.
+ * See migrateUserFieldValues function for the implementation.
+ */
 
 // Run the migration only if this script is run directly (not imported)
 if (require.main === module) {
