@@ -26,13 +26,13 @@ export class Content {
   @Column({ name: 'contentLanguage', type: 'text', nullable: true })
   contentLanguage?: string;
 
-  @Column({ name: 'se_domains', type: 'text', nullable: true })
+  @Column({ name: 'domains', type: 'text', nullable: true })
   domains?: string;
 
-  @Column({ name: 'se_subdomains', type: 'text', nullable: true })
+  @Column({ name: 'subdomains', type: 'text', nullable: true })
   subdomains?: string;
 
-  @Column({ name: 'se_subjects', type: 'text', nullable: true })
+  @Column({ name: 'subjects', type: 'text', nullable: true })
   subjects?: string;
 
   @Column({ name: 'targetAgeGroup', type: 'text', nullable: true })
