@@ -20,7 +20,8 @@ import { ContentTracker } from 'src/entities/content-tracker.entity';
 import { RegistrationTracker } from 'src/entities/registration-tracker.entity';
 import { Course } from 'src/entities/course.entity';
 import { QuestionSet } from 'src/entities/question-set.entity';
-import { ExternalCourseData, ExternalQuestionSetData } from 'src/types/cron.types';
+import { Content } from 'src/entities/content.entity';
+import { ExternalCourseData, ExternalQuestionSetData, ExternalContentData } from 'src/types/cron.types';
 
 @Injectable()
 export class TransformService {
@@ -641,6 +642,76 @@ export class TransformService {
       return transformedData;
     } catch (error) {
       console.error('Error transforming question set data:', error, {
+        identifier: data.identifier,
+        error: error.message,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Transform external content data to Content entity format
+   */
+  async transformContentData(data: ExternalContentData): Promise<Partial<Content>> {
+    try {
+      // Validate required fields
+      if (!data.identifier) {
+        throw new Error('Content identifier is required');
+      }
+
+      // Transform date fields
+      const transformDate = (dateValue: string | Date | null | undefined): Date | null => {
+        if (!dateValue) return null;
+        
+        if (typeof dateValue === 'string') {
+          const parsed = new Date(dateValue);
+          return isNaN(parsed.getTime()) ? null : parsed;
+        }
+        
+        if (dateValue instanceof Date) {
+          return isNaN(dateValue.getTime()) ? null : dateValue;
+        }
+        
+        return null;
+      };
+
+      // Transform text fields to handle arrays and objects
+      const transformText = (value: any): string | null => {
+        if (!value) return null;
+        
+        if (typeof value === 'string') return value;
+        if (typeof value === 'number') return value.toString();
+        if (Array.isArray(value)) return value.join(', ');
+        if (typeof value === 'object') return JSON.stringify(value);
+        
+        return null;
+      };
+
+      const transformedData: Partial<Content> = {
+        identifier: data.identifier,
+        name: data.name || null,
+        author: data.author || null,
+        primaryCategory: data.primaryCategory || null,
+        channel: data.channel || null,
+        status: data.status || null,
+        contentType: data.contentType || null,
+        contentLanguage: transformText(data.contentLanguage),
+        domains: transformText(data.domains),
+        subdomains: transformText(data.subdomains),
+        subjects: transformText(data.subjects),
+        targetAgeGroup: transformText(data.targetAgeGroup),
+        audience: transformText(data.audience),
+        program: transformText(data.program),
+        keywords: transformText(data.keywords),
+        description: data.description || null,
+        createdBy: data.createdBy || null,
+        lastPublishedOn: transformDate(data.lastPublishedOn),
+        createdOn: transformDate(data.createdOn),
+      };
+
+      return transformedData;
+    } catch (error) {
+      console.error('Error transforming content data:', error, {
         identifier: data.identifier,
         error: error.message,
       });

@@ -4,9 +4,11 @@ import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { 
   ExternalCourseData, 
   ExternalQuestionSetData,
+  ExternalContentData,
   ExternalApiResponse,
   ExternalCourseApiResponse,
   ExternalQuestionSetApiResponse,
+  ExternalContentApiResponse,
   PrathamApiRequest, 
   PrathamApiResponse, 
   PrathamContentData 
@@ -126,6 +128,28 @@ export class ExternalApiService {
   }
 
   /**
+   * Fetch content data from Pratham Digital API
+   */
+  async fetchContentData(): Promise<ExternalContentApiResponse> {
+    try {
+      this.logger.info('Fetching content data from Pratham Digital API', {
+        endpoint: this.config.externalApi.endpoint,
+      });
+
+      const response = await this.makeApiRequest('content');
+      return this.processApiResponse(response, 'content') as ExternalContentApiResponse;
+
+    } catch (error) {
+      this.logger.error('Failed to fetch content data from Pratham Digital API', error);
+      
+      return {
+        success: false,
+        error: error.message || 'Unknown error occurred',
+      };
+    }
+  }
+
+  /**
    * Get previous day's date in IST timezone (YYYY-MM-DD format)
    */
   private getPreviousDayIST(): string {
@@ -150,7 +174,7 @@ export class ExternalApiService {
   /**
    * Make the actual API request
    */
-  private async makeApiRequest(dataType: 'course' | 'questionSet'): Promise<AxiosResponse<PrathamApiResponse>> {
+  private async makeApiRequest(dataType: 'course' | 'questionSet' | 'content'): Promise<AxiosResponse<PrathamApiResponse>> {
     const dataTypeConfig = this.config.dataTypes[dataType];
     
     // Get date for filtering (custom date or previous day in IST)
@@ -166,7 +190,9 @@ export class ExternalApiService {
       request: {
         filters: {
           status: ['Live'],
-          primaryCategory: [dataTypeConfig.primaryCategory],
+          primaryCategory: Array.isArray(dataTypeConfig.primaryCategory) 
+            ? dataTypeConfig.primaryCategory 
+            : [dataTypeConfig.primaryCategory],
           createdOn: filterDate, // Previous day's date in IST or custom date from config
         },
         fields: dataTypeConfig.fields,
@@ -187,7 +213,7 @@ export class ExternalApiService {
   /**
    * Process the API response and extract course data
    */
-  private processApiResponse(response: AxiosResponse<PrathamApiResponse>, dataType: 'course' | 'questionSet'): ExternalCourseApiResponse | ExternalQuestionSetApiResponse {
+  private processApiResponse(response: AxiosResponse<PrathamApiResponse>, dataType: 'course' | 'questionSet' | 'content'): ExternalCourseApiResponse | ExternalQuestionSetApiResponse | ExternalContentApiResponse {
     const { data, status } = response;
 
     if (status !== 200) {
@@ -199,14 +225,18 @@ export class ExternalApiService {
       throw new Error('Invalid Pratham API response structure - missing result');
     }
 
-    // Handle different response structures for Course vs QuestionSet
+    // Handle different response structures for Course vs QuestionSet vs Content
     let prathamData: any[] = [];
     let convertedData: any[] = [];
     
     if (Array.isArray((data.result as any).content)) {
-      // Course API response structure
+      // Course/Content API response structure
       prathamData = (data.result as any).content;
-      convertedData = this.convertPrathamToLegacyFormat(prathamData);
+      if (dataType === 'content') {
+        convertedData = this.convertPrathamToContentFormat(prathamData);
+      } else {
+        convertedData = this.convertPrathamToLegacyFormat(prathamData);
+      }
     } else if (Array.isArray((data.result as any).QuestionSet)) {
       // QuestionSet API response structure
       prathamData = (data.result as any).QuestionSet;
@@ -225,10 +255,15 @@ export class ExternalApiService {
         success: true,
         data: convertedData as ExternalCourseData[],
       };
-    } else {
+    } else if (dataType === 'questionSet') {
       return {
         success: true,
         data: convertedData as ExternalQuestionSetData[],
+      };
+    } else {
+      return {
+        success: true,
+        data: convertedData as ExternalContentData[],
       };
     }
   }
@@ -282,6 +317,35 @@ export class ExternalApiService {
         subDomain: item.se_subdomains || item.subDomain || item.SubDomain || null,
         subject: item.se_subjects || item.subject || item.Subject || null,
         language: item.language || item.contentLanguage || item.Language || item.ContentLanguage || null,
+      }));
+  }
+
+  /**
+   * Convert Pratham API data to Content format
+   */
+  private convertPrathamToContentFormat(prathamData: any[]): ExternalContentData[] {
+    return prathamData
+      .filter((item) => item && item.identifier)
+      .map((item) => ({
+        identifier: item.identifier,
+        name: item.name || null,
+        author: item.author || null,
+        primaryCategory: item.primaryCategory || null,
+        channel: item.channel || 'pratham',
+        status: item.status ? item.status.toLowerCase() : 'live',
+        contentType: item.contentType || null,
+        contentLanguage: item.contentLanguage ? JSON.stringify(item.contentLanguage) : null,
+        domains: item.se_domains ? JSON.stringify(item.se_domains) : null,
+        subdomains: item.se_subdomains ? JSON.stringify(item.se_subdomains) : null,
+        subjects: item.se_subjects ? JSON.stringify(item.se_subjects) : null,
+        targetAgeGroup: item.targetAgeGroup ? JSON.stringify(item.targetAgeGroup) : null,
+        audience: item.audience ? JSON.stringify(item.audience) : null,
+        program: item.program ? JSON.stringify(item.program) : null,
+        keywords: item.keywords ? JSON.stringify(item.keywords) : null,
+        description: item.description || null,
+        createdBy: item.createdBy || null,
+        lastPublishedOn: item.lastPublishedOn || item.createdOn || null,
+        createdOn: item.createdOn || null,
       }));
   }
 

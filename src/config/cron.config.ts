@@ -28,6 +28,15 @@ export default registerAs('cron', () => ({
         'identifier', 'name', 'childNodes', 'createdOn', 'program', 
         'assessmentType', 'contentLanguage', 'domain', 'subDomain', 'subject'
       ]
+    },
+    content: {
+      primaryCategory: ['Learning Resource', 'Story', 'Activity', 'Interactive'],
+      fields: [
+        'identifier', 'name', 'author', 'primaryCategory', 'channel', 'status',
+        'contentType', 'contentLanguage', 'se_domains', 'se_subdomains', 'se_subjects',
+        'targetAgeGroup', 'audience', 'program', 'keywords', 'description',
+        'createdBy', 'lastPublishedOn', 'childNodes', 'createdOn'
+      ]
     }
   },
   
