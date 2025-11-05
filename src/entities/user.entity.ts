@@ -99,6 +99,14 @@ export class User {
   userSpouseName?: string;
 
   @Column({
+    name: 'UserPhoneType',
+    type: 'varchar',
+    length: 150,
+    nullable: true,
+  })
+  phoneTypeAccessible?: string;
+
+  @Column({
     name: 'UserWhatDoYouWantToBecome',
     type: 'varchar',
     length: 200,
