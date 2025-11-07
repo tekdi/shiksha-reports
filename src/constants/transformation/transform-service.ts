@@ -169,7 +169,7 @@ export class TransformService {
           return null;
         }
 
-        const field = data.customFields.find((f: any) => f.label === label);
+        const field = data?.customFields.find((f: any) => f?.label === label);
         if (
           !field ||
           !field.selectedValues ||
@@ -189,7 +189,7 @@ export class TransformService {
           selectedValue !== null
         ) {
           // Return the 'id' property for cohort fields
-          return selectedValue.id || null;
+          return selectedValue.id;
         }
 
         return null;
