@@ -122,6 +122,7 @@ export class TransformService {
         centerId: extractCustomField('CENTER'),
         phoneTypeAccessible: extractCustomField('TYPE_OF_PHONE_ACCESSIBLE'),
         familyMemberDetails: extractCustomField('FAMILY_MEMBER_DETAILS'),
+        userNumOfChildrenWorkingWith: extractCustomField('NUMBER_OF_CHILDREN_IN_YOUR_GROUP'),
 
         // Boolean fields
         userOwnPhoneCheck: convertToBoolean(

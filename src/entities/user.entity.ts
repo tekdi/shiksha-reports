@@ -231,4 +231,12 @@ export class User {
 
   @Column({ name: 'UpdatedBy', type: 'varchar', length: 100, nullable: true })
   updatedBy?: string;
+
+  @Column({ name: 'UserNumOfChildrenWorkingWith', type: 'text', nullable: true })
+  userNumOfChildrenWorkingWith?: string;
+
+  @Column({ name: 'UserCustomField', type: 'jsonb', nullable: true })
+  userCustomField?: Record<string, any>;
+
+
 }
