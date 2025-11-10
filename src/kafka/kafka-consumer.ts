@@ -13,6 +13,7 @@ import { AttendanceHandler } from '../handlers/attendance.handler';
 import { AssessmentHandler } from '../handlers/assessment.handler';
 import { EventHandler } from 'src/handlers/event.handler';
 import { CohortHandler } from 'src/handlers/cohort.handler';
+import { CohortMemberHandler } from 'src/handlers/cohort-member.handler';
 
 @Injectable()
 export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
@@ -29,6 +30,7 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
     private readonly assessmentHandler: AssessmentHandler,
     private readonly eventHandler: EventHandler,
     private readonly cohortHandler: CohortHandler,
+    private readonly cohortMemberHandler: CohortMemberHandler,
   ) {
     const brokers = this.configService
       .get<string>('KAFKA_BROKERS', 'localhost:9092')
@@ -200,6 +202,10 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
 
       case 'COHORT_DELETED':
         return this.cohortHandler.handleCohortDelete(data);
+
+      case 'COHORT_MEMBER_CREATED':
+      case 'COHORT_MEMBER_UPDATED':
+        return this.cohortMemberHandler.handleCohortMemberUpsert(data);
       default:
         this.logger.warn(`Unhandled user eventType: ${eventType}`);
     }
