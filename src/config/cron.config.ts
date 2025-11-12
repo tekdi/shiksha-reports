@@ -13,7 +13,7 @@ export default registerAs('cron', () => ({
 
     // Bases for hierarchy APIs (no auth required)
     contentBaseUrl: process.env.CONTENT_BASE_URL || 'https://content-prod.prathamdigital.org',
-    assessmentBaseUrl: process.env.ASSESSMENT_BASE_URL || process.env.ASSESMESNT_BASE_URL || 'https://assessment-prod.prathamdigital.org',
+    assessmentBaseUrl: process.env.ASSESSMENT_BASE_URL || 'https://assessment-prod.prathamdigital.org',
   },
   
   // Data fetching configuration

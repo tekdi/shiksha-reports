@@ -76,7 +76,7 @@ export class CronJobService implements OnModuleInit, OnModuleDestroy {
 
       // Process Course data
       await this.processCourseData();
-      
+
       // Process QuestionSet data
       await this.processQuestionSetData();
 

@@ -416,13 +416,31 @@ export class ExternalApiService {
     }
   }
 
+  // Generic retry helper with exponential backoff for hierarchy calls
+  private async requestWithRetry<T>(fn: () => Promise<T>, attempts = 3, initialDelayMs = 2000): Promise<T> {
+    let lastError: any;
+    let delay = initialDelayMs;
+    for (let i = 1; i <= attempts; i++) {
+      try {
+        return await fn();
+      } catch (error) {
+        lastError = error;
+        if (i < attempts) {
+          await new Promise((resolve) => setTimeout(resolve, delay));
+          delay = delay * 2;
+        }
+      }
+    }
+    throw lastError;
+  }
+
   // Fetch course hierarchy by identifier (no token required)
   async getCourseHierarchy(doId: string): Promise<any | null> {
     const base = this.config.externalApi.contentBaseUrl;
-    const url = `${base}/mfe_workspace/action/content/v3/hierarchy/${doId}?mode=edit`;
+    const url = `${base}/content/v3/hierarchy/${doId}`;
     try {
-      const res = await this.axiosInstance.get(url);
-      return res?.data?.result?.content ?? null;
+      const res = await this.requestWithRetry(() => this.axiosInstance.get(url));
+      return (res as any)?.data?.result?.content ?? null;
     } catch (error) {
       this.logger.error('Failed to fetch course hierarchy', error, { doId, url });
       return null;
@@ -432,10 +450,10 @@ export class ExternalApiService {
   // Fetch question set hierarchy by identifier (no token required)
   async getQuestionSetHierarchy(doId: string): Promise<any | null> {
     const base = this.config.externalApi.assessmentBaseUrl;
-    const url = `${base}/mfe_workspace/action/questionset/v2/hierarchy/${doId}?mode=edit`;
+    const url = `${base}/questionset/v5/hierarchy/${doId}`;
     try {
-      const res = await this.axiosInstance.get(url);
-      return res?.data?.result?.questionset ?? null;
+      const res = await this.requestWithRetry(() => this.axiosInstance.get(url));
+      return (res as any)?.data?.result?.questionset ?? null;
     } catch (error) {
       this.logger.error('Failed to fetch question set hierarchy', error, { doId, url });
       return null;
