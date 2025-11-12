@@ -114,4 +114,60 @@ export class UserHandler {
       throw error;
     }
   }
+
+  async handleUserTenantStatusUpdate(data: any) {
+    try {
+      // Validate required fields
+      validateString(data.userId, 'userId');
+      validateString(data.tenantId, 'tenantId');
+
+      // Extract role information
+      const roleId = data.role?.roleId;
+      if (!roleId) {
+        throw new Error('Role ID is required for tenant status update');
+      }
+
+      // Convert status to boolean (active = true, archived/inactive = false)
+      const isActive = data.status?.toLowerCase() === 'active';
+
+      // Prepare registration tracker update
+      const registrationTrackerData = {
+        userId: data.userId,
+        tenantId: data.tenantId,
+        roleId: roleId,
+        isActive: isActive,
+        tenantRegnDate: data.createdAt ? new Date(data.createdAt) : undefined,
+      };
+
+      // Update registration tracker
+      await this.dbService.upsertRegistrationTracker(registrationTrackerData);
+
+      console.log(
+        `[UserHandler] User tenant status updated: userId=${data.userId}, tenantId=${data.tenantId}, status=${data.status}, isActive=${isActive}`
+      );
+
+      // Optionally update user information if provided
+      if (data.user) {
+        const userUpdateData = {
+          userId: data.userId,
+          username: data.user.username,
+          fullName: `${data.user.firstName || ''} ${data.user.lastName || ''}`.trim(),
+          email: data.user.email,
+          mobile: data.user.mobile?.toString(),
+          updatedAt: data.updatedAt ? new Date(data.updatedAt) : new Date(),
+        };
+
+        await this.dbService.saveUserProfileData(userUpdateData);
+        console.log(`[UserHandler] User profile also updated for userId=${data.userId}`);
+      }
+
+      return { success: true, isActive };
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        throw new Error(`Validation failed: ${error.message}`);
+      }
+      console.error('[UserHandler] Error handling user tenant status update:', error);
+      throw error;
+    }
+  }
 }

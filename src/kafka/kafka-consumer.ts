@@ -194,6 +194,9 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
       case 'USER_DELETED':
         return this.userHandler.handleUserDelete(data);
 
+      case 'USER_TENANT_STATUS_UPDATE':
+        return this.userHandler.handleUserTenantStatusUpdate(data);
+
       case 'COHORT_CREATED':
       case 'COHORT_UPDATED':
         return this.cohortHandler.handleCohortUpsert(data);
