@@ -170,4 +170,65 @@ export class UserHandler {
       throw error;
     }
   }
+
+  async handleUserTenantMapping(data: any) {
+    try {
+      // Validate required fields
+      validateString(data.userId, 'userId');
+      validateString(data.tenantId, 'tenantId');
+
+      // Extract role information
+      const roleId = data.role?.roleId;
+      if (!roleId) {
+        throw new Error('Role ID is required for tenant mapping');
+      }
+
+      // Convert status to boolean (active = true, archived/inactive = false)
+      const isActive = data.status?.toLowerCase() === 'active';
+
+      // Transform and update user data with custom fields if provided
+      if (data.customFields && Array.isArray(data.customFields)) {
+        const transformedUserData = await this.transformService.transformUserData(data);
+        await this.dbService.saveUserProfileData(transformedUserData);
+        console.log(`[UserHandler] User profile updated with custom fields for userId=${data.userId}`);
+      } else if (data.user) {
+        // Fallback to basic user update if no custom fields
+        const userUpdateData = {
+          userId: data.userId,
+          username: data.user.username,
+          fullName: `${data.user.firstName || ''} ${data.user.lastName || ''}`.trim(),
+          email: data.user.email,
+          mobile: data.user.mobile?.toString(),
+          updatedAt: data.updatedAt ? new Date(data.updatedAt) : new Date(),
+        };
+        await this.dbService.saveUserProfileData(userUpdateData);
+        console.log(`[UserHandler] User profile updated for userId=${data.userId}`);
+      }
+
+      // Prepare registration tracker data
+      const registrationTrackerData = {
+        userId: data.userId,
+        tenantId: data.tenantId,
+        roleId: roleId,
+        isActive: isActive,
+        tenantRegnDate: data.createdAt ? new Date(data.createdAt) : new Date(),
+        platformRegnDate: data.createdAt ? new Date(data.createdAt) : new Date(),
+      };
+
+      // Update registration tracker
+      await this.dbService.upsertRegistrationTracker(registrationTrackerData);
+
+      console.log(
+        `[UserHandler] User tenant mapping created/updated: userId=${data.userId}, tenantId=${data.tenantId}, status=${data.status}, isActive=${isActive}`
+      );
+
+      return { success: true, isActive };
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        throw new Error(`Validation failed: ${error.message}`);
+      }
+      console.error('[UserHandler] Error handling user tenant mapping:', error);
+      throw error;
+    }
+  }
 }
