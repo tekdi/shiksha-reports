@@ -131,7 +131,7 @@ export class TransformService {
         // JobFamily, PSU, GroupMembership mapped to proper columns
         jobFamily: extractCustomField('JOB_FAMILY'),
         psu: extractCustomField('PSU'),
-        groupMembership: extractCustomField('EMP_GROUP') || extractCustomField('GROUP_MEMBERSHIP'),
+        groupMembership: extractCustomField('EMP_GROUP'),
       };
 
       return transformedData;
