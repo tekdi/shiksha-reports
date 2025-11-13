@@ -127,6 +127,11 @@ export class TransformService {
         userOwnPhoneCheck: convertToBoolean(
           extractCustomField('DOES_THIS_PHONE_BELONG_TO_YOU'),
         ),
+
+        // JobFamily, PSU, GroupMembership mapped to proper columns
+        jobFamily: extractCustomField('JOB_FAMILY'),
+        psu: extractCustomField('PSU'),
+        groupMembership: extractCustomField('EMP_GROUP') || extractCustomField('GROUP_MEMBERSHIP'),
       };
 
       return transformedData;

@@ -231,4 +231,28 @@ export class User {
 
   @Column({ name: 'UpdatedBy', type: 'varchar', length: 100, nullable: true })
   updatedBy?: string;
+
+  @Column({
+    name: 'JobFamily',
+    type: 'varchar',
+    length: 200,
+    nullable: true,
+  })
+  jobFamily?: string;
+
+  @Column({
+    name: 'PSU',
+    type: 'varchar',
+    length: 200,
+    nullable: true,
+  })
+  psu?: string;
+
+  @Column({
+    name: 'GroupMembership',
+    type: 'varchar',
+    length: 200,
+    nullable: true,
+  })
+  groupMembership?: string;
 }
