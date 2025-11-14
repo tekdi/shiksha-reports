@@ -76,7 +76,7 @@ export class CronJobService implements OnModuleInit, OnModuleDestroy {
 
       // Process Course data
       await this.processCourseData();
-      
+
       // Process QuestionSet data
       await this.processQuestionSetData();
 
@@ -133,6 +133,18 @@ export class CronJobService implements OnModuleInit, OnModuleDestroy {
       for (const courseData of apiResponse.data) {
         try {
           const transformedCourse = await this.transformService.transformExternalCourseData(courseData);
+
+          // Enrich with hierarchy (level arrays + childnodes)
+          const hierarchy = await this.externalApiService.getCourseHierarchy(courseData.identifier);
+          if (hierarchy) {
+            const levels = this.externalApiService.mapCourseLevelsByChannel(hierarchy);
+            (transformedCourse as any).level1 = levels.level1 || null;
+            (transformedCourse as any).level2 = levels.level2 || null;
+            (transformedCourse as any).level3 = levels.level3 || null;
+            (transformedCourse as any).level4 = levels.level4 || null;
+            (transformedCourse as any).childnodes = hierarchy.children ? JSON.stringify(hierarchy.children) : (transformedCourse as any).childnodes || null;
+          }
+
           await this.saveCourseData(transformedCourse);
           totalProcessed++;
         } catch (error) {
@@ -183,6 +195,18 @@ export class CronJobService implements OnModuleInit, OnModuleDestroy {
       for (const questionSetData of apiResponse.data) {
         try {
           const transformedQuestionSet = await this.transformService.transformQuestionSetData(questionSetData);
+
+          // Enrich with hierarchy (level arrays + child_nodes)
+          const qs = await this.externalApiService.getQuestionSetHierarchy(questionSetData.identifier);
+          if (qs) {
+            const levels = this.externalApiService.mapQuestionSetLevelsByFramework(qs);
+            (transformedQuestionSet as any).level1 = levels.level1 || null;
+            (transformedQuestionSet as any).level2 = levels.level2 || null;
+            (transformedQuestionSet as any).level3 = levels.level3 || null;
+            (transformedQuestionSet as any).level4 = levels.level4 || null;
+            (transformedQuestionSet as any).childNodes = qs.children ? JSON.stringify(qs.children) : (transformedQuestionSet as any).childNodes || null;
+          }
+
           await this.saveQuestionSetData(transformedQuestionSet);
           totalProcessed++;
         } catch (error) {
@@ -252,8 +276,6 @@ export class CronJobService implements OnModuleInit, OnModuleDestroy {
     const duration = Date.now() - startTime;
     return { totalProcessed, duration };
   }
-
-
 
   /**
    * Save course data to database
@@ -368,7 +390,6 @@ export class CronJobService implements OnModuleInit, OnModuleDestroy {
     this.logger.info('Manual cron job execution triggered');
     await this.executeCronJob();
   }
-
 
   /**
    * Health check method

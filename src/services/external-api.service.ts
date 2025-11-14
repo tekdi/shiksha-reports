@@ -415,4 +415,92 @@ export class ExternalApiService {
       return false;
     }
   }
+
+  // Generic retry helper with exponential backoff for hierarchy calls
+  private async requestWithRetry<T>(fn: () => Promise<T>, attempts = 3, initialDelayMs = 2000): Promise<T> {
+    let lastError: any;
+    let delay = initialDelayMs;
+    for (let i = 1; i <= attempts; i++) {
+      try {
+        return await fn();
+      } catch (error) {
+        lastError = error;
+        if (i < attempts) {
+          await new Promise((resolve) => setTimeout(resolve, delay));
+          delay = delay * 2;
+        }
+      }
+    }
+    throw lastError;
+  }
+
+  // Fetch course hierarchy by identifier (no token required)
+  async getCourseHierarchy(doId: string): Promise<any | null> {
+    const base = this.config.externalApi.contentBaseUrl;
+    const url = `${base}/content/v3/hierarchy/${doId}`;
+    try {
+      const res = await this.requestWithRetry(() => this.axiosInstance.get(url));
+      return (res as any)?.data?.result?.content ?? null;
+    } catch (error) {
+      this.logger.error('Failed to fetch course hierarchy', error, { doId, url });
+      return null;
+    }
+  }
+
+  // Fetch question set hierarchy by identifier (no token required)
+  async getQuestionSetHierarchy(doId: string): Promise<any | null> {
+    const base = this.config.externalApi.assessmentBaseUrl;
+    const url = `${base}/questionset/v5/hierarchy/${doId}`;
+    try {
+      const res = await this.requestWithRetry(() => this.axiosInstance.get(url));
+      return (res as any)?.data?.result?.questionset ?? null;
+    } catch (error) {
+      this.logger.error('Failed to fetch question set hierarchy', error, { doId, url });
+      return null;
+    }
+  }
+
+  // Map course hierarchy to level arrays based on channel
+  mapCourseLevelsByChannel(content: any): { level1: string[] | null; level2: string[] | null; level3: string[] | null; level4: string[] | null } {
+    const channel: string = content?.channel;
+    const pickArray = (key?: string | null): string[] | null => {
+      if (!key) return null;
+      const v = content?.[key];
+      if (v == null) return null;
+      if (Array.isArray(v)) return v.map((x: any) => String(x));
+      return [String(v)];
+    };
+    if (channel === 'pos-channel') {
+      return { level1: pickArray('se_domains'), level2: pickArray('se_subDomains'), level3: pickArray('se_subjects'), level4: null };
+    }
+    if (channel === 'pragyanpath-channel') {
+      return { level1: pickArray('se_domains'), level2: pickArray('se_subjects'), level3: null, level4: null };
+    }
+    if (channel === 'scp-channel') {
+      return { level1: pickArray('se_gradeLevels'), level2: pickArray('se_boards'), level3: pickArray('se_mediums'), level4: pickArray('se_subjects') };
+    }
+    return { level1: null, level2: null, level3: null, level4: null };
+  }
+
+  // Map question set hierarchy to level arrays based on framework
+  mapQuestionSetLevelsByFramework(qs: any): { level1: string[] | null; level2: string[] | null; level3: string[] | null; level4: string[] | null } {
+    const framework: string = qs?.framework;
+    const pickArray = (key?: string | null): string[] | null => {
+      if (!key) return null;
+      const v = qs?.[key];
+      if (v == null) return null;
+      if (Array.isArray(v)) return v.map((x: any) => String(x));
+      return [String(v)];
+    };
+    if (framework === 'pos-framework') {
+      return { level1: pickArray('domain'), level2: pickArray('subDomain'), level3: pickArray('subject'), level4: null };
+    }
+    if (framework === 'pragyanpath-framework') {
+      return { level1: pickArray('domain'), level2: pickArray('subject'), level3: null, level4: null };
+    }
+    if (framework === 'scp-framework') {
+      return { level1: pickArray('gradeLevel'), level2: pickArray('board'), level3: pickArray('medium'), level4: pickArray('subject') };
+    }
+    return { level1: null, level2: null, level3: null, level4: null };
+  }
 }

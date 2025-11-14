@@ -5,6 +5,18 @@ export class QuestionSet {
   @PrimaryColumn({ name: 'identifier', type: 'varchar', length: 255 })
   identifier: string;
 
+  @Column({ name: 'level1', type: 'text', array: true, nullable: true })
+  level1?: string[];
+
+  @Column({ name: 'level2', type: 'text', array: true, nullable: true })
+  level2?: string[];
+
+  @Column({ name: 'level3', type: 'text', array: true, nullable: true })
+  level3?: string[];
+
+  @Column({ name: 'level4', type: 'text', array: true, nullable: true })
+  level4?: string[];
+
   @Column({ name: 'name', type: 'text', nullable: true })
   name?: string;
 
@@ -22,15 +34,6 @@ export class QuestionSet {
 
   @Column({ name: 'content_language', type: 'varchar', length: 100, nullable: true })
   contentLanguage?: string;
-
-  @Column({ name: 'domain', type: 'text', nullable: true })
-  domain?: string;
-
-  @Column({ name: 'sub_domain', type: 'text', nullable: true })
-  subDomain?: string;
-
-  @Column({ name: 'subject', type: 'text', nullable: true })
-  subject?: string;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   created_at: Date;

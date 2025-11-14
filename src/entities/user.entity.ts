@@ -6,27 +6,22 @@ export class User {
   userId: string;
 
   @Column({ name: 'UserName', type: 'varchar', length: 100, nullable: true })
-  username?: string;
+  userName?: string;
 
-  @Column({
-    name: 'UserFullName',
-    type: 'varchar',
-    length: 200,
-    nullable: true,
-  })
-  fullName?: string;
+  @Column({ name: 'UserFullName', type: 'varchar', length: 200, nullable: true })
+  userFullName?: string;
 
   @Column({ name: 'UserEmail', type: 'varchar', length: 150, nullable: true })
-  email?: string;
+  userEmail?: string;
 
   @Column({ name: 'UserDoB', type: 'date', nullable: true })
-  dob?: string;
+  userDoB?: Date;
 
   @Column({ name: 'UserMobile', type: 'varchar', length: 20, nullable: true })
-  mobile?: string;
+  userMobile?: string;
 
   @Column({ name: 'UserGender', type: 'varchar', length: 20, nullable: true })
-  gender?: string;
+  userGender?: string;
 
   @Column({
     name: 'UserIsActive',
@@ -34,29 +29,19 @@ export class User {
     nullable: true,
     default: () => 'true',
   })
-  status?: boolean;
+  userIsActive?: boolean;
 
   @Column({ name: 'UserStateID', type: 'varchar', length: 50, nullable: true })
-  stateId?: string;
+  userStateId?: string;
 
-  @Column({
-    name: 'UserDistrictID',
-    type: 'varchar',
-    length: 50,
-    nullable: true,
-  })
-  districtId?: string;
+  @Column({ name: 'UserDistrictID', type: 'varchar', length: 50, nullable: true })
+  userDistrictId?: string;
 
   @Column({ name: 'UserBlockID', type: 'varchar', length: 50, nullable: true })
-  blockId?: string;
+  userBlockId?: string;
 
-  @Column({
-    name: 'UserVillageID',
-    type: 'varchar',
-    length: 50,
-    nullable: true,
-  })
-  villageId?: string;
+  @Column({ name: 'UserVillageID', type: 'varchar', length: 50, nullable: true })
+  userVillageId?: string;
 
   @Column({
     name: 'UserPreferredModeOfLearning',
@@ -64,47 +49,19 @@ export class User {
     length: 100,
     nullable: true,
   })
-  preferredModeOfLearning?: string;
+  userPreferredModeOfLearning?: string;
 
-  @Column({
-    name: 'UserMotherName',
-    type: 'varchar',
-    length: 150,
-    nullable: true,
-  })
+  @Column({ name: 'UserMotherName', type: 'varchar', length: 150, nullable: true })
   userMotherName?: string;
 
-  @Column({
-    name: 'UserWorkDomain',
-    type: 'varchar',
-    length: 150,
-    nullable: true,
-  })
+  @Column({ name: 'UserWorkDomain', type: 'varchar', length: 150, nullable: true })
   userWorkDomain?: string;
 
-  @Column({
-    name: 'UserFatherName',
-    type: 'varchar',
-    length: 150,
-    nullable: true,
-  })
+  @Column({ name: 'UserFatherName', type: 'varchar', length: 150, nullable: true })
   userFatherName?: string;
 
-  @Column({
-    name: 'UserSpouseName',
-    type: 'varchar',
-    length: 150,
-    nullable: true,
-  })
+  @Column({ name: 'UserSpouseName', type: 'varchar', length: 150, nullable: true })
   userSpouseName?: string;
-
-  @Column({
-    name: 'UserPhoneType',
-    type: 'varchar',
-    length: 150,
-    nullable: true,
-  })
-  phoneTypeAccessible?: string;
 
   @Column({
     name: 'UserWhatDoYouWantToBecome',
@@ -117,20 +74,10 @@ export class User {
   @Column({ name: 'UserClass', type: 'varchar', length: 50, nullable: true })
   userClass?: string;
 
-  @Column({
-    name: 'UserPreferredLanguage',
-    type: 'varchar',
-    length: 100,
-    nullable: true,
-  })
+  @Column({ name: 'UserPreferredLanguage', type: 'varchar', length: 100, nullable: true })
   userPreferredLanguage?: string;
 
-  @Column({
-    name: 'UserParentPhone',
-    type: 'varchar',
-    length: 20,
-    nullable: true,
-  })
+  @Column({ name: 'UserParentPhone', type: 'varchar', length: 20, nullable: true })
   userParentPhone?: string;
 
   @Column({
@@ -141,20 +88,10 @@ export class User {
   })
   userGuardianRelation?: string;
 
-  @Column({
-    name: 'UserSubjectTaught',
-    type: 'varchar',
-    length: 200,
-    nullable: true,
-  })
+  @Column({ name: 'UserSubjectTaught', type: 'varchar', length: 200, nullable: true })
   userSubjectTaught?: string;
 
-  @Column({
-    name: 'UserMaritalStatus',
-    type: 'varchar',
-    length: 50,
-    nullable: true,
-  })
+  @Column({ name: 'UserMaritalStatus', type: 'varchar', length: 50, nullable: true })
   userMaritalStatus?: string;
 
   @Column({ name: 'UserGrade', type: 'varchar', length: 50, nullable: true })
@@ -177,12 +114,7 @@ export class User {
   })
   userEnrollmentNumber?: string;
 
-  @Column({
-    name: 'UserDesignation',
-    type: 'varchar',
-    length: 150,
-    nullable: true,
-  })
+  @Column({ name: 'UserDesignation', type: 'varchar', length: 150, nullable: true })
   userDesignation?: string;
 
   @Column({ name: 'UserBoard', type: 'varchar', length: 100, nullable: true })
@@ -191,38 +123,28 @@ export class User {
   @Column({ name: 'UserSubject', type: 'varchar', length: 150, nullable: true })
   userSubject?: string;
 
-  @Column({
-    name: 'UserMainSubject',
-    type: 'varchar',
-    length: 150,
-    nullable: true,
-  })
+  @Column({ name: 'UserMainSubject', type: 'varchar', length: 150, nullable: true })
   userMainSubject?: string;
 
   @Column({ name: 'UserMedium', type: 'varchar', length: 100, nullable: true })
   userMedium?: string;
 
-  @Column({
-    name: 'UserGuardianName',
-    type: 'varchar',
-    length: 150,
-    nullable: true,
-  })
+  @Column({ name: 'UserGuardianName', type: 'varchar', length: 150, nullable: true })
   userGuardianName?: string;
 
   @Column({
     name: 'CreatedAt',
     type: 'timestamp',
-    nullable: true,
     default: () => 'CURRENT_TIMESTAMP',
+    nullable: true,
   })
   createdAt?: Date;
 
   @Column({
     name: 'UpdatedAt',
     type: 'timestamp',
-    nullable: true,
     default: () => 'CURRENT_TIMESTAMP',
+    nullable: true,
   })
   updatedAt?: Date;
 
@@ -233,25 +155,30 @@ export class User {
   updatedBy?: string;
 
   @Column({
-    name: 'ERPUserID',
-    type: 'varchar',
-    length: 200,
+    name: 'UserNumOfChildrenWorkingWith',
+    type: 'text',
     nullable: true,
   })
-  erpUserId?: string;
+  userNumOfChildrenWorkingWith?: string;
 
-  @Column({
-    name: 'IsManager',
-    type: 'boolean',
-    nullable: true,
-  })
-  isManager?: boolean;
+  @Column({ name: 'UserPhoneType', type: 'varchar', length: 50, nullable: true })
+  userPhoneType?: string;
 
-  @Column({
-    name: 'EMPManager',
-    type: 'varchar',
-    length: 200,
-    nullable: true,
-  })
+  @Column({ name: 'UserCustomField', type: 'jsonb', nullable: true })
+  userCustomField?: any;
+
+  @Column({ name: 'JobFamily', type: 'varchar', length: 150, nullable: true })
+  jobFamily?: string;
+
+  @Column({ name: 'PSU', type: 'varchar', length: 150, nullable: true })
+  psu?: string;
+
+  @Column({ name: 'GroupMembership', type: 'varchar', length: 150, nullable: true })
+  groupMembership?: string;
+
+  @Column({ name: 'IsManager', type: 'varchar', length: 200, nullable: true })
+  isManager?: string;
+
+  @Column({ name: 'EMPManager', type: 'uuid', nullable: true })
   empManager?: string;
 }

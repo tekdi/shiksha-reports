@@ -5,6 +5,18 @@ export class Course {
   @PrimaryColumn({ name: 'identifier', type: 'varchar', length: 255 })
   identifier: string;
 
+  @Column({ name: 'level1', type: 'text', array: true, nullable: true })
+  level1?: string[];
+
+  @Column({ name: 'level2', type: 'text', array: true, nullable: true })
+  level2?: string[];
+
+  @Column({ name: 'level3', type: 'text', array: true, nullable: true })
+  level3?: string[];
+
+  @Column({ name: 'level4', type: 'text', array: true, nullable: true })
+  level4?: string[];
+
   @Column({ name: 'name', type: 'text', nullable: true })
   name?: string;
 
@@ -14,9 +26,6 @@ export class Course {
   @Column({ name: 'primaryuser', type: 'varchar', length: 255, nullable: true })
   primaryuser?: string;
 
-  @Column({ name: 'se_domains', type: 'text', nullable: true })
-  se_domains?: string;
-
   @Column({ name: 'contentlanguage', type: 'varchar', length: 100, nullable: true })
   contentlanguage?: string;
 
@@ -25,9 +34,6 @@ export class Course {
 
   @Column({ name: 'targetagegroup', type: 'varchar', length: 100, nullable: true })
   targetagegroup?: string;
-
-  @Column({ name: 'se_subdomains', type: 'text', nullable: true })
-  se_subdomains?: string;
 
   @Column({ name: 'childnodes', type: 'text', nullable: true })
   childnodes?: string;
@@ -49,9 +55,6 @@ export class Course {
 
   @Column({ name: 'audience', type: 'varchar', length: 255, nullable: true })
   audience?: string;
-
-  @Column({ name: 'se_subjects', type: 'text', nullable: true })
-  se_subjects?: string;
 
   @Column({ name: 'description', type: 'text', nullable: true })
   description?: string;

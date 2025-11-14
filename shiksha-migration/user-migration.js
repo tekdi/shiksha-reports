@@ -35,7 +35,7 @@ const FIELD_ID_TO_COLUMN_MAPPING = {
 	'4fc098c5-bec5-4afc-a15d-093805b05119':'UserDesignation',
 	'f93c0ac3-f827-4794-9457-441fa1057b42':'UserBoard',
 	'69a9dba2-e05e-40cd-a39c-047b9b676b5c':'UserSubject',
-	'935bfb34-9be7-4676-b9cc-cec1ec4c0a2c':'UserMainSubject',
+  '935bfb34-9be7-4676-b9cc-cec1ec4c0a2c':'UserMainSubject',
   '7b214a17-5a07-4ee0-bedc-271429862d30':'UserMedium',
   '5a2dbb89-bbe6-4aa8-b541-93e01ab07b70':'UserGuardianName',
   
@@ -45,7 +45,7 @@ const FIELD_ID_TO_COLUMN_MAPPING = {
   
   // ERP and Manager fields
   '93de5cc5-9437-4ca7-95f3-3b2f31b24093': 'ERPUserID',                      // ERP User ID
-  '8e8ab9b7-8ce0-4e6e-bf7e-0477a80734c8': 'IsManager',                     // Is Manager (boolean)
+  '8e8ab9b7-8ce0-4e6e-bf7e-0477a80734c8': 'IsManager',                     // Is Manager (string/text)
   '27589b6d-6ece-457a-8d50-d15a3db02bf6': 'EMPManager'                     // Employee Manager
 };
 
@@ -69,7 +69,6 @@ const CUSTOM_FIELD_ID_TO_NAME_MAPPING = {
 const BOOLEAN_DEST_COLUMNS = new Set([
   'UserOwnPhoneCheck',
   'UserTrainingCheck',
-  'IsManager',
 ]);
 
 async function migrateUsers() {
@@ -290,37 +289,15 @@ async function migrateUserFieldValues(sourceClient, destClient, userId) {
 
   // Process field values strictly by fieldId mapping
   const userFieldValues = {};
-  const userCustomFields = []; // Array to store custom field objects
   
   for (const row of fieldValuesResult.rows) {
     const { fieldId, value } = row;
     
-    // Check if this fieldId should go to UserCustomField column
-    const customFieldName = CUSTOM_FIELD_ID_TO_NAME_MAPPING[fieldId];
-    if (customFieldName) {
-      const convertedValue = getFirstValue(value);
-      // Only add to custom fields if value is not null
-      if (convertedValue !== null && convertedValue !== undefined) {
-        // Store as array of objects with fieldId, fieldName, and filedValue
-        userCustomFields.push({
-          fieldId: fieldId,
-          fieldName: customFieldName,
-          filedValue: convertedValue
-        });
-      }
-      continue; // Skip regular column mapping for custom fields
-    }
-    
-    // Regular column mapping
+    // Regular column mapping (including JobFamily, PSU, GroupMembership)
     const columnName = FIELD_ID_TO_COLUMN_MAPPING[fieldId];
     if (!columnName) continue;
     const convertedValue = getFirstValue(value, columnName);
     userFieldValues[columnName] = convertedValue;
-  }
-  
-  // Add UserCustomField to the update if there are custom fields
-  if (userCustomFields.length > 0) {
-    userFieldValues['UserCustomField'] = JSON.stringify(userCustomFields);
   }
   
   // Update this user's record in the destination database
@@ -354,12 +331,7 @@ async function processUser(destClient, userId, fieldData) {
     let paramIndex = 2;
     
     for (const [columnName, value] of Object.entries(fieldData)) {
-      // For UserCustomField, cast to JSONB since it contains JSON string
-      if (columnName === 'UserCustomField') {
-        setClause.push(`"${columnName}" = $${paramIndex}::jsonb`);
-      } else {
-        setClause.push(`"${columnName}" = $${paramIndex}`);
-      }
+      setClause.push(`"${columnName}" = $${paramIndex}`);
       values.push(value);
       paramIndex++;
     }
@@ -385,8 +357,8 @@ async function processUser(destClient, userId, fieldData) {
 
 /**
  * NOTE: insertUserMeta function removed
- * Custom fields (JobFamily, PSU, GroupMembership) are now stored in the 
- * Users.UserCustomField column instead of a separate UserMeta table.
+ * JobFamily, PSU, and GroupMembership are now stored in proper columns 
+ * (JobFamily, PSU, GroupMembership) instead of UserCustomField column.
  * See migrateUserFieldValues function for the implementation.
  */
 
