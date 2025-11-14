@@ -558,11 +558,9 @@ export class TransformService {
         name: data.name || null,
         author: data.author || null,
         primaryuser: data.primaryuser || null,
-        se_domains: transformText(data.se_domains),
         contentlanguage: data.contentlanguage || null,
         status: data.status || null,
         targetagegroup: data.targetagegroup || null,
-        se_subdomains: transformText(data.se_subdomains),
         childnodes: transformText(data.childnodes),
         keywords: transformText(data.keywords),
         channel: data.channel || null,
@@ -570,7 +568,6 @@ export class TransformService {
         createdby: data.createdby || null,
         program: data.program || null,
         audience: data.audience || null,
-        se_subjects: transformText(data.se_subjects),
         description: data.description || null,
       };
       return transformedData;
@@ -634,9 +631,6 @@ export class TransformService {
         program: transformText(getFieldValue(data.program)),
         assessmentType: data.assessmentType || null,
         contentLanguage: transformText(getFieldValue(data.contentLanguage, data.language)),
-        domain: transformText(getFieldValue(data.se_domains, data.domain)),
-        subDomain: transformText(getFieldValue(data.se_subdomains, data.subDomain)),
-        subject: transformText(getFieldValue(data.se_subjects, data.subject)),
       };
 
       return transformedData;

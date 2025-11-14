@@ -35,15 +35,6 @@ export class QuestionSet {
   @Column({ name: 'content_language', type: 'varchar', length: 100, nullable: true })
   contentLanguage?: string;
 
-  @Column({ name: 'domain', type: 'text', nullable: true })
-  domain?: string;
-
-  @Column({ name: 'sub_domain', type: 'text', nullable: true })
-  subDomain?: string;
-
-  @Column({ name: 'subject', type: 'text', nullable: true })
-  subject?: string;
-
   @CreateDateColumn({ name: 'created_at', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   created_at: Date;
 
