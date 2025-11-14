@@ -231,4 +231,27 @@ export class User {
 
   @Column({ name: 'UpdatedBy', type: 'varchar', length: 100, nullable: true })
   updatedBy?: string;
+
+  @Column({
+    name: 'ERPUserID',
+    type: 'varchar',
+    length: 200,
+    nullable: true,
+  })
+  erpUserId?: string;
+
+  @Column({
+    name: 'IsManager',
+    type: 'boolean',
+    nullable: true,
+  })
+  isManager?: boolean;
+
+  @Column({
+    name: 'EMPManager',
+    type: 'varchar',
+    length: 200,
+    nullable: true,
+  })
+  empManager?: string;
 }

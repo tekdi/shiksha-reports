@@ -121,29 +121,31 @@ export class UserHandler {
       validateString(data.userId, 'userId');
       validateString(data.tenantId, 'tenantId');
 
-      // Extract role information
+      // Extract role information (optional)
       const roleId = data.role?.roleId;
-      if (!roleId) {
-        throw new Error('Role ID is required for tenant status update');
-      }
 
       // Convert status to boolean (active = true, archived/inactive = false)
       const isActive = data.status?.toLowerCase() === 'active';
 
       // Prepare registration tracker update
-      const registrationTrackerData = {
+      const registrationTrackerData: any = {
         userId: data.userId,
         tenantId: data.tenantId,
-        roleId: roleId,
         isActive: isActive,
         tenantRegnDate: data.createdAt ? new Date(data.createdAt) : undefined,
+        reason: data.reason || undefined,
       };
+
+      // Include roleId only if provided
+      if (roleId) {
+        registrationTrackerData.roleId = roleId;
+      }
 
       // Update registration tracker
       await this.dbService.upsertRegistrationTracker(registrationTrackerData);
 
       console.log(
-        `[UserHandler] User tenant status updated: userId=${data.userId}, tenantId=${data.tenantId}, status=${data.status}, isActive=${isActive}`
+        `[UserHandler] User tenant status updated: userId=${data.userId}, tenantId=${data.tenantId}, roleId=${roleId || 'N/A'}, status=${data.status}, isActive=${isActive}`
       );
 
       // Optionally update user information if provided

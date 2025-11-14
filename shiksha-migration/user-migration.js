@@ -41,7 +41,12 @@ const FIELD_ID_TO_COLUMN_MAPPING = {
   
   // New field mappings added as requested
   'da594b2e-c645-4a96-af15-6e2d24587c9a':'UserPhoneType',                    // phone_type_accessible
-  'a4c2dace-e052-4e78-b6ad-9ffcc035c578':'UserNumOfChildrenWorkingWith'      // number_of_children_in_your_group
+  'a4c2dace-e052-4e78-b6ad-9ffcc035c578':'UserNumOfChildrenWorkingWith',      // number_of_children_in_your_group
+  
+  // ERP and Manager fields
+  '93de5cc5-9437-4ca7-95f3-3b2f31b24093': 'ERPUserID',                      // ERP User ID
+  '8e8ab9b7-8ce0-4e6e-bf7e-0477a80734c8': 'IsManager',                     // Is Manager (boolean)
+  '27589b6d-6ece-457a-8d50-d15a3db02bf6': 'EMPManager'                     // Employee Manager
 };
 
 /**
@@ -64,6 +69,7 @@ const CUSTOM_FIELD_ID_TO_NAME_MAPPING = {
 const BOOLEAN_DEST_COLUMNS = new Set([
   'UserOwnPhoneCheck',
   'UserTrainingCheck',
+  'IsManager',
 ]);
 
 async function migrateUsers() {

@@ -63,6 +63,38 @@ export class TransformService {
         return null;
       };
 
+      // Helper function to extract custom field by fieldId
+      const extractCustomFieldById = (fieldId: string) => {
+        if (!data.customFields || !Array.isArray(data.customFields)) {
+          return null;
+        }
+        const field = data?.customFields.find((f: any) => f?.fieldId === fieldId);
+
+        if (
+          !field ||
+          !field.selectedValues ||
+          !Array.isArray(field.selectedValues) ||
+          field.selectedValues.length === 0
+        ) {
+          return null;
+        }
+
+        const selectedValue = field.selectedValues[0];
+
+        // Handle different types of selectedValues
+        if (typeof selectedValue === 'string') {
+          return selectedValue;
+        } else if (
+          typeof selectedValue === 'object' &&
+          selectedValue !== null
+        ) {
+          // Return the 'value' property if it exists, otherwise 'id'
+          return selectedValue.value || selectedValue.id || null;
+        }
+
+        return null;
+      };
+
       // Helper function to convert yes/no to boolean
       const convertToBoolean = (value: string | null) => {
         if (value === null) return null;
@@ -127,6 +159,13 @@ export class TransformService {
         userOwnPhoneCheck: convertToBoolean(
           extractCustomField('DOES_THIS_PHONE_BELONG_TO_YOU'),
         ),
+
+        // ERP and Manager fields (extracted by fieldId)
+        erpUserId: extractCustomFieldById('93de5cc5-9437-4ca7-95f3-3b2f31b24093'),
+        isManager: convertToBoolean(
+          extractCustomFieldById('8e8ab9b7-8ce0-4e6e-bf7e-0477a80734c8')
+        ),
+        empManager: extractCustomFieldById('27589b6d-6ece-457a-8d50-d15a3db02bf6'),
       };
 
       return transformedData;
@@ -501,6 +540,8 @@ export class TransformService {
                 platformRegnDate: platformRegnDate,
                 tenantRegnDate: platformRegnDate, // Same as platform date for new registrations
                 isActive: true,
+                // Include reason if provided (from tenant, role, or data level)
+                reason: (tenant as any).reason || (role as any).reason || (data as any).reason || undefined,
               };
               registrationTrackers.push(registrationTracker);
             }
