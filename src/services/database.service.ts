@@ -1,12 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../entities/user.entity';
 
 import { DailyAttendanceReport } from 'src/entities/daily-attendance-report.entity';
 import { Event } from 'src/entities/event.entity';
-import { EventDetails } from 'src/entities/event-details.entity';
-import { EventRepetition } from 'src/entities/event-repetition.entity';
 import { CohortMember } from 'src/entities/cohort-member.entity';
 import { Cohort } from 'src/entities/cohort.entity';
 import { AttendanceTracker } from 'src/entities/attendance-tracker.entity';
@@ -24,10 +22,6 @@ export class DatabaseService {
     private dailyAttendanceRepo: Repository<DailyAttendanceReport>,
     @InjectRepository(Event)
     private eventRepo: Repository<Event>,
-    @InjectRepository(EventDetails)
-    private eventDetailsRepo: Repository<EventDetails>,
-    @InjectRepository(EventRepetition)
-    private eventRepetitionRepo: Repository<EventRepetition>,
     @InjectRepository(CohortMember)
     private cohortMemberRepo: Repository<CohortMember>,
     @InjectRepository(Cohort)
@@ -43,6 +37,91 @@ export class DatabaseService {
     @InjectRepository(RegistrationTracker)
     private registrationTrackerRepo: Repository<RegistrationTracker>,
   ) {}
+
+  private readonly logger = new Logger(DatabaseService.name);
+
+  private cohortMemberColumnTypeCache: Record<string, { isArray: boolean }> | null = null;
+
+  private async loadCohortMemberColumnTypes(schema: string, tableName: string, columns: string[]) {
+    if (this.cohortMemberColumnTypeCache) return this.cohortMemberColumnTypeCache;
+    const placeholders = columns.map((_, idx) => `$${idx + 3}`).join(',');
+    const sql = `SELECT column_name, data_type, udt_name
+      FROM information_schema.columns
+      WHERE table_schema = $1 AND table_name = $2 AND column_name IN (${placeholders})`;
+    try {
+      const result = await this.cohortMemberRepo.query(sql, [schema, tableName, ...columns]);
+      const map: Record<string, { isArray: boolean }> = {};
+      for (const row of result) {
+        const col = row.column_name as string;
+        const isArray = (row.data_type === 'ARRAY') || (typeof row.udt_name === 'string' && row.udt_name.endsWith('[]'));
+        map[col] = { isArray };
+      }
+      this.cohortMemberColumnTypeCache = map;
+      return map;
+    } catch (err) {
+      this.logger.warn(`Failed to read column types for ${schema}.${tableName}: ${err?.message}`);
+      // Fallback: assume non-array
+      const map: Record<string, { isArray: boolean }> = {};
+      for (const c of columns) map[c] = { isArray: false };
+      this.cohortMemberColumnTypeCache = map;
+      return map;
+    }
+  }
+
+  private toArrayLiteral(values: string[]): string {
+    const escape = (s: string) => s.replace(/"/g, '\\"');
+    return `{${values.map((v) => `"${escape(v)}"`).join(',')}}`;
+  }
+
+  private normalizeValueForColumn(
+    column: string,
+    value: any,
+    isArray: boolean,
+  ): string | null {
+    if (value == null) return null;
+    // If already an array
+    if (Array.isArray(value)) {
+      return isArray
+        ? this.toArrayLiteral(value.map((v) => String(v)))
+        : value.join(',');
+    }
+    let str = String(value).trim();
+    // Remove wrapping quotes if present
+    if (
+      (str.startsWith('"') && str.endsWith('"')) ||
+      (str.startsWith("'") && str.endsWith("'"))
+    ) {
+      str = str.substring(1, str.length - 1);
+    }
+    // If target is array, convert single value or pre-braced string into array literal
+    if (isArray) {
+      if (str.startsWith('{') && str.endsWith('}')) {
+        // Assume already an array literal. Keep as-is.
+        return str;
+      }
+      // Split comma-separated string into array elements, trim and dequote each
+      const parts = str
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0)
+        .map((s) => {
+          if (
+            (s.startsWith('"') && s.endsWith('"')) ||
+            (s.startsWith("'") && s.endsWith("'"))
+          ) {
+            return s.substring(1, s.length - 1);
+          }
+          return s;
+        });
+      return this.toArrayLiteral(parts.length > 0 ? parts : [str]);
+    }
+    // If not array, and string looks like array literal, unwrap to simple comma string
+    if (str.startsWith('{') && str.endsWith('}')) {
+      const inner = str.substring(1, str.length - 1);
+      return inner.replace(/\"/g, '"');
+    }
+    return str;
+  }
 
   async saveUserProfileData(data: any) {
     return this.userRepo.save(data);
@@ -64,22 +143,13 @@ export class DatabaseService {
 
 
 
-  async saveEventDetailsData(data: any) {
-    return this.eventDetailsRepo.save(data);
-  }
-
   async saveEventData(data: any) {
     return this.eventRepo.save(data);
   }
 
-  async saveEventRepetitionData(data: any) {
-    return this.eventRepetitionRepo.save(data);
-  }
-
   async deleteEventData(data: { eventDetailId: string }) {
     const { eventDetailId } = data;
-    await this.eventRepetitionRepo.delete({ eventDetailId });
-    return this.eventDetailsRepo.delete({ eventDetailId });
+    return this.eventRepo.delete({ eventDetailId });
   }
 
   async saveCohortMemberData(data: any) {
@@ -96,6 +166,29 @@ export class DatabaseService {
     });
   }
 
+  async findCohortMemberById(cohortMembershipId: string) {
+    return this.cohortMemberRepo.findOne({
+      where: { CohortMemberID: cohortMembershipId },
+    });
+  }
+
+  async createCohortMemberWithId(params: {
+    cohortMembershipId: string;
+    userId: string;
+    cohortId: string;
+    status?: string;
+    academicYearId?: string;
+  }) {
+    const payload: Partial<CohortMember> = {
+      CohortMemberID: params.cohortMembershipId as any,
+      UserID: params.userId,
+      CohortID: params.cohortId,
+      MemberStatus: params.status ?? 'active',
+      AcademicYearID: params.academicYearId,
+    } as any;
+    return this.cohortMemberRepo.save(payload);
+  }
+
   async updateCohortMemberStatus(
     userId: string,
     cohortId: string,
@@ -105,6 +198,64 @@ export class DatabaseService {
       { UserID: userId, CohortID: cohortId },
       { MemberStatus: status },
     );
+  }
+
+  async updateCohortMemberCustomFieldsById(
+    cohortMembershipId: string,
+    updates: Record<string, string | null | undefined>,
+  ) {
+    // Only allow specific columns to be updated
+    const allowed = new Set(['Subject', 'Fees', 'Registration', 'Board']);
+    const entries = Object.entries(updates).filter(([k, v]) =>
+      allowed.has(k),
+    );
+
+    if (entries.length === 0) {
+      return { affected: 0 } as any;
+    }
+
+    // Build dynamic SET clause using parameterized query
+    const setFragments: string[] = [];
+    const params: any[] = [];
+
+    const { schema, tableName } = this.cohortMemberRepo.metadata as any;
+    const effectiveSchema = schema && schema.length > 0 ? schema : 'public';
+    const colTypes = await this.loadCohortMemberColumnTypes(effectiveSchema, 'CohortMember', entries.map(([c]) => c));
+
+    entries.forEach(([column, value], idx) => {
+      setFragments.push(`"${column}" = $${idx + 1}`);
+      const normalized = this.normalizeValueForColumn(column, value, !!colTypes[column]?.isArray);
+      params.push(normalized);
+    });
+
+    params.push(cohortMembershipId);
+
+    // Use metadata and quote identifiers to preserve case/schema
+    // schema already resolved above
+    const fullTable = `"${effectiveSchema}"."${tableName}"`;
+    const sql = `UPDATE ${fullTable}
+      SET ${setFragments.join(', ')}
+      WHERE "CohortMemberID"::text = $${params.length}`;
+
+    // Detailed debug
+    this.logger.debug(
+      `Updating CohortMember fields | table=${fullTable} | cohortMembershipId=${cohortMembershipId} | keys=${entries
+        .map(([k]) => k)
+        .join(',')} | paramsCount=${params.length}`,
+    );
+
+    try {
+      const result = await this.cohortMemberRepo.query(sql, params);
+      this.logger.debug(
+        `Update result for ${cohortMembershipId}: ${JSON.stringify(result)}`,
+      );
+      return result;
+    } catch (err) {
+      this.logger.error(
+        `Query failed updating CohortMember | table=${fullTable} | sql=${sql} | error=${err?.message}`,
+      );
+      throw err;
+    }
   }
 
   async upsertCohortMemberData(cohortMemberData: Partial<CohortMember>) {
@@ -154,7 +305,7 @@ export class DatabaseService {
             CohortID: cohortMemberData.CohortID,
           },
         });
-        
+
         return { action: 'updated', data: updatedMember };
       } else {
         // If no existing record, insert new one
