@@ -34,4 +34,12 @@ export class RegistrationTracker {
     default: true 
   })
   isActive: boolean;
+
+  @Column({ 
+    name: 'Reason', 
+    type: 'varchar', 
+    length: 500,
+    nullable: true 
+  })
+  reason?: string;
 }

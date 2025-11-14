@@ -43,10 +43,21 @@ const FIELD_ID_TO_COLUMN_MAPPING = {
   'da594b2e-c645-4a96-af15-6e2d24587c9a':'UserPhoneType',                    // phone_type_accessible
   'a4c2dace-e052-4e78-b6ad-9ffcc035c578':'UserNumOfChildrenWorkingWith',      // number_of_children_in_your_group
   
-  // JobFamily, PSU, GroupMembership mapped to proper columns
-  'a736e2f0-4f9b-4249-8fe5-1ff36754dc97': 'JobFamily',                      // JOB_FAMILY
-  '432eb6dd-a92b-444f-ae75-42f604ad9a18': 'PSU',                            // PSU
-  '29c36dd1-315c-46d9-bf6a-f1858ae71c33': 'GroupMembership'                 // EMP_GROUP / GROUP_MEMBERSHIP
+  // ERP and Manager fields
+  '93de5cc5-9437-4ca7-95f3-3b2f31b24093': 'ERPUserID',                      // ERP User ID
+  '8e8ab9b7-8ce0-4e6e-bf7e-0477a80734c8': 'IsManager',                     // Is Manager (string/text)
+  '27589b6d-6ece-457a-8d50-d15a3db02bf6': 'EMPManager'                     // Employee Manager
+};
+
+/**
+ * Mapping of field IDs to field names for UserCustomField column
+ * These fields will be stored in Users.UserCustomField column as JSON array
+ * Format: [{"fieldId": "...", "fieldName": "...", "filedValue": "..."}]
+ */
+const CUSTOM_FIELD_ID_TO_NAME_MAPPING = {
+  'a736e2f0-4f9b-4249-8fe5-1ff36754dc97': 'JobFamily',
+  '432eb6dd-a92b-444f-ae75-42f604ad9a18': 'PSU',
+  '29c36dd1-315c-46d9-bf6a-f1858ae71c33': 'GroupMembership'
 };
 
 /**
