@@ -588,7 +588,7 @@ export class DatabaseService {
       // Update the user's last login timestamp
       return this.userRepo.update(
         { userId },
-        { LastLogin: lastLoginDate }
+        { userLastLogin: lastLoginDate }
       );
     } catch (error) {
       console.error('Error updating user last login:', error);
