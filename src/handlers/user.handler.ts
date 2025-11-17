@@ -3,6 +3,7 @@ import { DatabaseService } from '../services/database.service';
 import { TransformService } from 'src/constants/transformation/transform-service';
 import {
   UserEventData,
+  LastLoginEventData,
   validateRequired,
   validateString,
   ValidationError,
@@ -107,6 +108,21 @@ export class UserHandler {
     try {
       validateString(data.cohortId, 'cohortId');
       return this.dbService.deleteCohortData(data);
+    } catch (error) {
+      if (error instanceof ValidationError) {
+        throw new Error(`Validation failed: ${error.message}`);
+      }
+      throw error;
+    }
+  }
+
+  async handleUserLastLogin(data: LastLoginEventData) {
+    try {
+      // Validate required fields
+      validateString(data.userId, 'userId');
+
+      // Update last login timestamp
+      return this.dbService.updateUserLastLogin(data);
     } catch (error) {
       if (error instanceof ValidationError) {
         throw new Error(`Validation failed: ${error.message}`);

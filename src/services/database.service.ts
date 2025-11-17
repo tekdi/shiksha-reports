@@ -575,4 +575,24 @@ export class DatabaseService {
 
     return this.courseTrackerRepo.update(existing.courseTrackerId, updatePayload);
   }
+
+  async updateUserLastLogin(data: { userId: string; lastLogin?: string | Date }) {
+    try {
+      const { userId, lastLogin } = data;
+      
+      // Convert lastLogin to Date if it's a string
+      const lastLoginDate = lastLogin 
+        ? (typeof lastLogin === 'string' ? new Date(lastLogin) : lastLogin)
+        : new Date(); // Default to current timestamp if not provided
+      
+      // Update the user's last login timestamp
+      return this.userRepo.update(
+        { userId },
+        { LastLogin: lastLoginDate }
+      );
+    } catch (error) {
+      console.error('Error updating user last login:', error);
+      throw error;
+    }
+  }
 }
