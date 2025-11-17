@@ -255,4 +255,8 @@ export class User {
     nullable: true,
   })
   groupMembership?: string;
+
+  @Column({ type: "timestamptz", nullable: true })
+  LastLogin: Date | null; // Timestamp for last login
+
 }
