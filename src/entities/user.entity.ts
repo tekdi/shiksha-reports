@@ -256,7 +256,7 @@ export class User {
   })
   groupMembership?: string;
 
-  @Column({ type: "timestamptz", nullable: true })
-  LastLogin: Date | null; // Timestamp for last login
+  @Column({ name: 'UserLastLogin', type: "timestamptz", nullable: true })
+  userLastLogin: Date | null; // Timestamp for last login
 
 }
