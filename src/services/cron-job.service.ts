@@ -179,6 +179,28 @@ export class CronJobService implements OnModuleInit, OnModuleDestroy {
   private buildCompactQuestionSetChildren(root: any): any[] {
     const ensureString = (v: any): string => (v === undefined || v === null ? '' : String(v));
     const ensureIndex = (v: any): number | string => (v === undefined || v === null ? '' : v);
+    const stripHtml = (s: any): string => {
+      const text = ensureString(s);
+      return text.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+    };
+    const extractQuestionTitle = (node: any, sectionName: string): string => {
+      // Prefer editorState.question/body when available, then title/name fallbacks
+      const candidates = [
+        node?.editorState?.question,
+        node?.editorState?.body,
+        node?.body,
+        node?.title,
+        node?.metadata?.name,
+        node?.name, // last fallback
+      ];
+      for (const c of candidates) {
+        const cleaned = stripHtml(c);
+        if (cleaned && cleaned.length > 0 && cleaned !== sectionName) {
+          return cleaned;
+        }
+      }
+      return '';
+    };
 
     const rows: any[] = [];
 
@@ -206,13 +228,14 @@ export class CronJobService implements OnModuleInit, OnModuleDestroy {
       }
 
       if (node.objectType === 'Question') {
+        const sectionName = ctx ? ctx.sectionName : '';
         rows.push({
           'section Index Number': ctx ? ctx.sectionIndex : '',
           'Section do_id': ctx ? ctx.sectionId : '',
           'Section name': ctx ? ctx.sectionName : '',
           'Question Index Number': ensureIndex((node as any).index),
           'Question do_id': ensureString(node.identifier),
-          'Question Name': ensureString(node.name),
+          'Question Name': extractQuestionTitle(node, sectionName),
           'Question Type': ensureString((node as any).qType),
         });
         return;
