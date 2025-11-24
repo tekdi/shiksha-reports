@@ -33,33 +33,11 @@ async function migrateRegistrationTracker() {
       WHERE utm."userId" IS NOT NULL 
         AND utm."tenantId" IS NOT NULL
         AND urm."roleId" IS NOT NULL
-        AND utm."Id" IN (
-'349ef422-f331-4ca7-8f63-62b519c06a6b',
-'e227c8b8-beaa-47ee-b8d8-c9b803edc93f',
-'0a60b671-d28f-4d22-8163-42c98ee1e589',
-'341252bc-73fe-4e1e-acc1-1fd5529f21d5',
-'928f9e50-438f-499e-9e1c-745cd4c1bfa7',
-'a009b53a-c3f3-4708-aa04-a808796800d0',
-'b16ca678-6957-4b97-aa38-39e2614dd500',
-'58a76c08-9dcd-457d-bfb0-8d51f9ca1f4b',
-'d29727d8-6ace-4cb4-8027-22210cade0d0',
-'28469745-e336-4c88-a0e3-f30b212b34a6',
-'83b25f0e-89a9-4881-ae6e-41a09430da23',
-'bac23b4f-e15c-44e4-9aa8-6f829ea3aef6',
-'83984a53-2cff-4ebf-a581-7791ae0a0bca',
-'3d50ee68-0414-4633-bce8-89d9d0c7d48f',
-'e73902f7-d992-40fc-a95b-fbdd7c9718b7',
-'08963fbc-6ee9-4965-9bae-f02f5e26fbc4',
-'2ba40c57-f891-4493-a83a-7842d8bd7a5b',
-'83ace739-454a-489d-b32b-f5d38f83a370',
-'817ce1a1-4bd9-4923-80ce-f9303ddd376b',
-'ddbbe334-de2a-45db-a536-e1367e375354'
-);
+        AND utm."tenantId" = '914ca990-9b45-4385-a06b-05054f35d0b9'
     `;
 
     const res = await sourceClient.query(query);
     console.log(`[REG TRACKER] Found ${res.rows.length} registration records.`);
-
     let processed = 0;
     for (const row of res.rows) {
       await upsertRegistrationTracker(destClient, row);

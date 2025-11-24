@@ -203,6 +203,11 @@ export interface AssessmentScoreData {
   queTitle?: string;
 }
 
+export interface LastLoginEventData {
+  userId: string;
+  lastLogin?: string | Date;
+}
+
 // Validation error class
 export class ValidationError extends Error {
   constructor(

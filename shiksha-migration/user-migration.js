@@ -43,21 +43,13 @@ const FIELD_ID_TO_COLUMN_MAPPING = {
   'da594b2e-c645-4a96-af15-6e2d24587c9a':'UserPhoneType',                    // phone_type_accessible
   'a4c2dace-e052-4e78-b6ad-9ffcc035c578':'UserNumOfChildrenWorkingWith',      // number_of_children_in_your_group
   
-  // ERP and Manager fields
-  '93de5cc5-9437-4ca7-95f3-3b2f31b24093': 'ERPUserID',                      // ERP User ID
-  '8e8ab9b7-8ce0-4e6e-bf7e-0477a80734c8': 'IsManager',                     // Is Manager (string/text)
-  '27589b6d-6ece-457a-8d50-d15a3db02bf6': 'EMPManager'                     // Employee Manager
-};
-
-/**
- * Mapping of field IDs to field names for UserCustomField column
- * These fields will be stored in Users.UserCustomField column as JSON array
- * Format: [{"fieldId": "...", "fieldName": "...", "filedValue": "..."}]
- */
-const CUSTOM_FIELD_ID_TO_NAME_MAPPING = {
-  'a736e2f0-4f9b-4249-8fe5-1ff36754dc97': 'JobFamily',
-  '432eb6dd-a92b-444f-ae75-42f604ad9a18': 'PSU',
-  '29c36dd1-315c-46d9-bf6a-f1858ae71c33': 'GroupMembership'
+  // JobFamily, PSU, GroupMembership mapped to proper columns
+  'a736e2f0-4f9b-4249-8fe5-1ff36754dc97': 'JobFamily',                      // JOB_FAMILY
+  '432eb6dd-a92b-444f-ae75-42f604ad9a18': 'PSU',                            // PSU
+  '29c36dd1-315c-46d9-bf6a-f1858ae71c33': 'GroupMembership',
+  '8e8ab9b7-8ce0-4e6e-bf7e-0477a80734c8': 'IsManager',
+  '27589b6d-6ece-457a-8d50-d15a3db02bf6': 'EMPManager',
+  '93de5cc5-9437-4ca7-95f3-3b2f31b24093': 'ERPUserID',  // EMP_GROUP / GROUP_MEMBERSHIP
 };
 
 /**
@@ -69,6 +61,7 @@ const CUSTOM_FIELD_ID_TO_NAME_MAPPING = {
 const BOOLEAN_DEST_COLUMNS = new Set([
   'UserOwnPhoneCheck',
   'UserTrainingCheck',
+  'IsManager',  // IsManager is likely a boolean field
 ]);
 
 async function migrateUsers() {
@@ -164,7 +157,6 @@ async function migrateCoreUserData(sourceClient, destClient) {
     LEFT JOIN public."UserTenantMapping" utm ON u."userId" = utm."userId" WHERE utm."tenantId" = '914ca990-9b45-4385-a06b-05054f35d0b9';
     ;
   `;
-  console.log(usersQuery);
   
   const usersResult = await sourceClient.query(usersQuery);
   console.log(`[USER MIGRATION] Found ${usersResult.rows.length} users to migrate.`);
@@ -276,7 +268,7 @@ async function migrateUserFieldValues(sourceClient, destClient, userId) {
   const fieldValuesQuery = `
     SELECT fv."itemId" as "userId", fv."fieldId", fv.value
     FROM public."FieldValues" fv
-    WHERE fv."itemId" = $1
+    WHERE fv."itemId" = $1;
   `;
   
   const fieldValuesResult = await sourceClient.query(fieldValuesQuery, [userId]);
@@ -286,6 +278,25 @@ async function migrateUserFieldValues(sourceClient, destClient, userId) {
     console.log(`[USER MIGRATION] No field values found for user ${userId}, skipping field values migration.`);
     return;
   }
+  
+  // Log all fieldIds found for debugging
+  const allFieldIds = fieldValuesResult.rows.map(row => row.fieldId);
+  console.log(`[USER MIGRATION] All fieldIds found for user ${userId}:`, allFieldIds);
+  
+  // Check if the new fieldIds are present
+  const newFieldIds = [
+    '8e8ab9b7-8ce0-4e6e-bf7e-0477a80734c8',
+    '27589b6d-6ece-457a-8d50-d15a3db02bf6',
+    '93de5cc5-9437-4ca7-95f3-3b2f31b24093'
+  ];
+  const foundNewFieldIds = allFieldIds.filter(id => 
+    newFieldIds.some(newId => String(id).toLowerCase() === newId.toLowerCase())
+  );
+  if (foundNewFieldIds.length > 0) {
+    console.log(`[USER MIGRATION] 🎯 Found ${foundNewFieldIds.length} of the 3 new fieldIds:`, foundNewFieldIds);
+  } else {
+    console.log(`[USER MIGRATION] ⚠️ None of the 3 new fieldIds found in data for user ${userId}`);
+  }
 
   // Process field values strictly by fieldId mapping
   const userFieldValues = {};
@@ -293,15 +304,56 @@ async function migrateUserFieldValues(sourceClient, destClient, userId) {
   for (const row of fieldValuesResult.rows) {
     const { fieldId, value } = row;
     
-    // Regular column mapping (including JobFamily, PSU, GroupMembership)
-    const columnName = FIELD_ID_TO_COLUMN_MAPPING[fieldId];
-    if (!columnName) continue;
+    // Normalize fieldId to handle case sensitivity (PostgreSQL might return lowercase UUIDs)
+    const normalizedFieldId = fieldId ? String(fieldId).toLowerCase() : null;
+    const originalFieldId = fieldId;
+    
+    // Try exact match first, then normalized (lowercase) match
+    let columnName = FIELD_ID_TO_COLUMN_MAPPING[fieldId];
+    if (!columnName && normalizedFieldId) {
+      // Try to find by normalized (lowercase) key
+      const matchingKey = Object.keys(FIELD_ID_TO_COLUMN_MAPPING).find(
+        key => String(key).toLowerCase() === normalizedFieldId
+      );
+      if (matchingKey) {
+        columnName = FIELD_ID_TO_COLUMN_MAPPING[matchingKey];
+        console.log(`[USER MIGRATION] 🔄 Matched fieldId ${originalFieldId} (normalized) to column: ${columnName}`);
+      }
+    }
+    
+    if (!columnName) {
+      // Log unmapped fieldIds for debugging (especially the new ones)
+      const newFieldIds = [
+        '8e8ab9b7-8ce0-4e6e-bf7e-0477a80734c8',
+        '27589b6d-6ece-457a-8d50-d15a3db02bf6',
+        '93de5cc5-9437-4ca7-95f3-3b2f31b24093'
+      ];
+      const normalizedNewFieldIds = newFieldIds.map(id => id.toLowerCase());
+      
+      if (normalizedNewFieldIds.includes(normalizedFieldId)) {
+        console.log(`[USER MIGRATION] ⚠️ WARNING: New fieldId ${originalFieldId} (normalized: ${normalizedFieldId}) not found in mapping!`);
+        console.log(`[USER MIGRATION] Available mapping keys (first 5):`, Object.keys(FIELD_ID_TO_COLUMN_MAPPING).slice(0, 5));
+      }
+      continue;
+    }
+    
+    console.log(`[USER MIGRATION] ✅ Processing fieldId ${originalFieldId} -> ${columnName}, value:`, value);
     const convertedValue = getFirstValue(value, columnName);
+    console.log(`[USER MIGRATION] Converted value for ${columnName}:`, convertedValue);
     userFieldValues[columnName] = convertedValue;
   }
   
   // Update this user's record in the destination database
   if (Object.keys(userFieldValues).length > 0) {
+    console.log(`[USER MIGRATION] 📊 Summary for user ${userId}: Migrating ${Object.keys(userFieldValues).length} fields:`, Object.keys(userFieldValues));
+    // Check if the new fields are in the migration
+    const newFieldColumns = ['IsManager', 'EMPManager', 'ERPUserID'];
+    const migratedNewFields = Object.keys(userFieldValues).filter(col => newFieldColumns.includes(col));
+    if (migratedNewFields.length > 0) {
+      console.log(`[USER MIGRATION] ✅ Successfully mapped new fields:`, migratedNewFields);
+    } else {
+      console.log(`[USER MIGRATION] ⚠️ New fields (IsManager, EMPManager, ERPUserID) not in migration for user ${userId}`);
+    }
     await processUser(destClient, userId, userFieldValues);
   } else {
     console.log(`[USER MIGRATION] No mappable field values found for user ${userId}.`);

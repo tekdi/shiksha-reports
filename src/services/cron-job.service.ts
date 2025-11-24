@@ -165,6 +165,93 @@ export class CronJobService implements OnModuleInit, OnModuleDestroy {
     return { totalProcessed, duration };
   }
 
+  // Build flat rows for QuestionSet hierarchy:
+  // Output: Array of rows with exact keys:
+  // - "section Index Number"
+  // - "Section ID"
+  // - "Section name"
+  // - "Question Index Number"
+  // - "Question DO_ID"
+  // - "Question Name"
+  // - "Question Type"
+  // Each row represents one Question under its nearest Section.
+  // Missing values are represented as empty string "".
+  private buildCompactQuestionSetChildren(root: any): any[] {
+    const ensureString = (v: any): string => (v === undefined || v === null ? '' : String(v));
+    const ensureIndex = (v: any): number | string => (v === undefined || v === null ? '' : v);
+    const stripHtml = (s: any): string => {
+      const text = ensureString(s);
+      return text.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+    };
+    const extractQuestionTitle = (node: any, sectionName: string): string => {
+      // Prefer editorState.question/body when available, then title/name fallbacks
+      const candidates = [
+        node?.editorState?.question,
+        node?.editorState?.body,
+        node?.body,
+        node?.title,
+        node?.metadata?.name,
+        node?.name, // last fallback
+      ];
+      for (const c of candidates) {
+        const cleaned = stripHtml(c);
+        if (cleaned && cleaned.length > 0 && cleaned !== sectionName) {
+          return cleaned;
+        }
+      }
+      return '';
+    };
+
+    const rows: any[] = [];
+
+    type SectionCtx = {
+      sectionIndex: number | string;
+      sectionId: string;
+      sectionName: string;
+    } | null;
+
+    const visit = (node: any, ctx: SectionCtx) => {
+      if (!node || typeof node !== 'object') return;
+
+      if (node.objectType === 'QuestionSet') {
+        const newCtx: SectionCtx = {
+          sectionIndex: ensureIndex((node as any).index),
+          sectionId: ensureString(node.identifier),
+          sectionName: ensureString(node.name),
+        };
+        if (Array.isArray(node.children)) {
+          for (const child of node.children) {
+            visit(child, newCtx);
+          }
+        }
+        return;
+      }
+
+      if (node.objectType === 'Question') {
+        const sectionName = ctx ? ctx.sectionName : '';
+        rows.push({
+          'section Index Number': ctx ? ctx.sectionIndex : '',
+          'Section do_id': ctx ? ctx.sectionId : '',
+          'Section name': ctx ? ctx.sectionName : '',
+          'Question Index Number': ensureIndex((node as any).index),
+          'Question do_id': ensureString(node.identifier),
+          'Question Name': extractQuestionTitle(node, sectionName),
+          'Question Type': ensureString((node as any).qType),
+        });
+        return;
+      }
+
+      if (Array.isArray(node.children)) {
+        for (const child of node.children) {
+          visit(child, ctx);
+        }
+      }
+    };
+
+    visit(root, null);
+    return rows;
+  }
+
   /**
    * Process question set data from Pratham Digital API (for future use)
    */
@@ -204,7 +291,9 @@ export class CronJobService implements OnModuleInit, OnModuleDestroy {
             (transformedQuestionSet as any).level2 = levels.level2 || null;
             (transformedQuestionSet as any).level3 = levels.level3 || null;
             (transformedQuestionSet as any).level4 = levels.level4 || null;
-            (transformedQuestionSet as any).childNodes = qs.children ? JSON.stringify(qs.children) : (transformedQuestionSet as any).childNodes || null;
+            // Build compact childNodes JSON: sections with minimal fields and their questions
+            const compact = this.buildCompactQuestionSetChildren(qs);
+            (transformedQuestionSet as any).childNodes = compact.length > 0 ? JSON.stringify(compact) : (transformedQuestionSet as any).childNodes || null;
           }
 
           await this.saveQuestionSetData(transformedQuestionSet);
@@ -422,3 +511,5 @@ export class CronJobService implements OnModuleInit, OnModuleDestroy {
     }
   }
 }
+
+
