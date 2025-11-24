@@ -431,6 +431,7 @@ export class TransformService {
         assessmentSummary: JSON.stringify(data.assessmentSummary),
         attemptId: data.attemptId, // Use attemptId from source data
         assessmentType: data.assessmentType,
+        evaluatedBy: (data as any).evaluatedBy || undefined,
       };
 
       const scoreDetails = data.scores || [];
