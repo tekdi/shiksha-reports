@@ -233,6 +233,13 @@ export class User {
   updatedBy?: string;
 
   @Column({
+    name: 'UserNumOfChildrenWorkingWith',
+    type: 'text',
+    nullable: true,
+  })
+  userNumOfChildrenWorkingWith?: string;
+  
+  @Column({
     name: 'JobFamily',
     type: 'varchar',
     length: 200,
@@ -255,6 +262,15 @@ export class User {
     nullable: true,
   })
   groupMembership?: string;
+
+  @Column({ name: 'EMPManager', type: 'text', nullable: true })
+  empManager?: string;
+
+  @Column({ name: 'ERPUserID', type: 'text', nullable: true })
+  erpUserId?: string;
+
+  @Column({ name: 'IsManager', type: 'text', nullable: true })
+  isManager?: string;
 
   @Column({ name: 'UserLastLogin', type: "timestamptz", nullable: true })
   userLastLogin: Date | null; // Timestamp for last login
