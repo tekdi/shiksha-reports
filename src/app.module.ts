@@ -30,6 +30,7 @@ import { CourseTracker } from './entities/course-tracker.entity';
 import { ContentTracker } from './entities/content-tracker.entity';
 import { ContentHandler } from './handlers/content.handler';
 import { CohortHandler } from './handlers/cohort.handler';
+import { CohortMemberHandler } from './handlers/cohort-member.handler';
 import { RegistrationTracker } from './entities/registration-tracker.entity';
 
 @Module({
@@ -92,6 +93,7 @@ import { RegistrationTracker } from './entities/registration-tracker.entity';
     AssessmentHandler,
     EventHandler,
     CohortHandler,
+    CohortMemberHandler,
     TransformService,
     // Cron job services
     ExternalApiService,

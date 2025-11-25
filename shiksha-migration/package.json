@@ -6,6 +6,7 @@
   "scripts": {
     "start:assessment": "node assessment-migration.js",
     "start:course": "node course-migration.js",
+    "start:events": "node events-migration.js",
     "start:user": "node user-migration.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
