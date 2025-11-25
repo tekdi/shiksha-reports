@@ -54,4 +54,12 @@ export class AssessmentTracker {
 
   @Column({ name: 'AttemptID', type: 'uuid', nullable: true })
   attemptId?: string;
+
+  @Column({ 
+    name: 'evaluatedBy', 
+    type: 'varchar', 
+    length: 100,
+    nullable: true 
+  })
+  evaluatedBy?: string;
 }
