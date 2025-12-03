@@ -67,7 +67,8 @@ export class CourseHandler {
       validateString(data.tenantId, 'tenantId');
       validateString(data.courseId, 'courseId');
       validateString(data.status, 'status');
-      validateString(data.certificateId, 'certificateId');
+      // certificateId is optional - validate only if provided
+      validateString(data.certificateId, 'certificateId', false);
       // Map usercertificateId -> certificateId (if present)
 
       // Optionally refresh course name if we don't have a record; here we only update existing
