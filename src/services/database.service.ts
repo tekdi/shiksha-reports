@@ -625,11 +625,44 @@ export class DatabaseService {
     });
   }
 
+  // Placeholder tenant ID that should be replaced with actual tenant
+  private readonly PLACEHOLDER_TENANT_ID = 'e39447df-069d-4ccf-b92c-576f70b350f3';
+
   async upsertRegistrationTracker(registrationData: Partial<RegistrationTracker>) {
     try {
       // If roleId is provided, use it in the conflict key
       if (registrationData.roleId) {
-        // Use database-level upsert with ON CONFLICT to avoid race conditions
+        // First, check if there's an existing record with the placeholder tenantId for this user
+        const existingWithPlaceholder = await this.registrationTrackerRepo.findOne({
+          where: {
+            userId: registrationData.userId,
+            tenantId: this.PLACEHOLDER_TENANT_ID
+          }
+        });
+
+        if (existingWithPlaceholder) {
+          // Update the existing record with placeholder tenant - update tenantId and roleId too
+          console.log(`[RegistrationTracker] Found existing record with placeholder tenant for user ${registrationData.userId}. Updating tenantId and roleId.`);
+          
+          const updateResult = await this.registrationTrackerRepo.update(
+            {
+              userId: registrationData.userId,
+              tenantId: this.PLACEHOLDER_TENANT_ID
+            },
+            {
+              tenantId: registrationData.tenantId,
+              roleId: registrationData.roleId,
+              platformRegnDate: registrationData.platformRegnDate,
+              tenantRegnDate: registrationData.tenantRegnDate,
+              isActive: registrationData.isActive,
+              reason: registrationData.reason
+            }
+          );
+
+          return updateResult;
+        }
+
+        // No placeholder record found, use database-level upsert with ON CONFLICT to avoid race conditions
         const result = await this.registrationTrackerRepo
           .createQueryBuilder()
           .insert()
