@@ -147,9 +147,6 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
     }
 
     // Direct message format (no wrapper) - infer event type from topic and message
-    this.logger.log(
-      `Received direct message format from topic [${topic}], inferring event type...`,
-    );
     await this.processDirectMessage(topic, event);
   }
 
@@ -245,7 +242,6 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async handleEventEvent(eventType: string, data: any) {
-    this.logger.log(`Handling event-event type: ${eventType}`);
     switch (eventType) {
       case 'EVENT_CREATED':
       case 'EVENT_UPDATED':
@@ -260,7 +256,6 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async handleAttendanceEvent(eventType: string, data: any) {
-    this.logger.log(`Handling attendance-event type: ${eventType}`);
     switch (eventType) {
       case 'ATTENDANCE_CREATED':
       case 'ATTENDANCE_UPDATED':
@@ -275,7 +270,6 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async handleAssessmentEvent(eventType: string, data: any) {
-    this.logger.log(`Handling assessment-event type: ${eventType}`);
     switch (eventType) {
       case 'ASSESSMENT_CREATED':
       case 'ASSESSMENT_UPDATED':
@@ -289,19 +283,17 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
     }
   }
   private async handleCourseEvent(eventType: string, data: any) {
-    this.logger.log(`Handling course-event type: ${eventType}`);
     switch (eventType) {
       case 'COURSE_ENROLLMENT_CREATED':
         return this.courseHandler.handleCourseEnrollmentCreated(data);
       case 'COURSE_STATUS_UPDATED':
         return this.courseHandler.handleCourseStatusUpdated(data);
       default:
-        this.logger.warn(`Unhandled assessment eventType: ${eventType}`);
+        this.logger.warn(`Unhandled course eventType: ${eventType}`);
     }
   }
 
   private async handleContentEvent(eventType: string, data: any) {
-    this.logger.log(`Handling content-event type: ${eventType}`);
     switch (eventType) {
       case 'CONTENT_TRACKING_CREATED':
         return this.contentHandler.handleContentTrackingCreated(data);
@@ -311,7 +303,6 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async handleProjectEvent(eventType: string, data: any) {
-    this.logger.log(`Handling project-event type: ${eventType}`);
     switch (eventType) {
       case 'COURSE_PLANNER_PROJECT_CREATED':
         return this.projectHandler.handleProjectCreated(data);
@@ -335,17 +326,11 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
         case 'project-sync-topic':
           // Infer event type based on message fields
           const eventType = this.inferProjectSyncEventType(message);
-          this.logger.log(
-            `Inferred event type: ${eventType} for topic: ${topic}`,
-          );
           await this.handleProjectEvent(eventType, message);
           break;
 
         case 'project-update-topic':
           // Handle project task updates
-          this.logger.log(
-            `Processing PROJECT_TASK_UPDATED event from topic: ${topic}`,
-          );
           await this.handleProjectEvent('PROJECT_TASK_UPDATED', message);
           break;
 

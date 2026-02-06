@@ -266,6 +266,9 @@ export class User {
   @Column({ name: 'EMPManager', type: 'text', nullable: true })
   empManager?: string;
 
+  @Column({ name: 'UserProgram', type: 'text', nullable: true })
+  program?: string;
+
   @Column({ name: 'ERPUserID', type: 'text', nullable: true })
   erpUserId?: string;
 

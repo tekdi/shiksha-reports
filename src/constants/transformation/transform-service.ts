@@ -172,6 +172,7 @@ export class TransformService {
         jobFamily: extractCustomField('JOB_FAMILY'),
         psu: extractCustomField('PSU'),
         groupMembership: extractCustomField('EMP_GROUP'),
+        program: extractCustomField('PROGRAM'),
       };
       console.log(transformedData,"");
       return transformedData;
