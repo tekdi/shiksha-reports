@@ -2,7 +2,7 @@ const { Client } = require('pg');
 const axios = require('axios');
 const dbConfig = require('./db');
 
-console.log('=== Loading api-migration.js ===');
+console.log('=== Loading content-migration.js ===');
 
 const API_URL = 'https://interface.prathamdigital.org/interface/v1/action/composite/v3/search';
 const LIMIT = 1000;
@@ -19,20 +19,48 @@ const ARRAY_FIELDS = [
   'contentLanguage'
 ];
 
-// Fetch data from API with pagination
-async function fetchDataFromAPI(offset = 0) {
+// Generate array of dates between start and end date
+function getDateRange(startDateStr, endDateStr) {
+  const dates = [];
+  const startDate = new Date(startDateStr);
+  const endDate = new Date(endDateStr);
+  
+  const currentDate = new Date(startDate);
+  while (currentDate <= endDate) {
+    // Format as YYYY-MM-DD
+    const year = currentDate.getFullYear();
+    const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+    const day = String(currentDate.getDate()).padStart(2, '0');
+    dates.push(`${year}-${month}-${day}`);
+    
+    // Move to next day
+    currentDate.setDate(currentDate.getDate() + 1);
+  }
+  
+  return dates;
+}
+
+// Fetch data from API with pagination and date filter
+async function fetchDataFromAPI(offset = 0, createdOnDate = null) {
   const headers = {
     'Content-Type': 'application/json',
     'User-Agent': 'Shiksha-Reports-Cron/1.0',
     'Cookie': 'AWSALB=AexPo8Pmp6oMCH3rjxzJLf4yo+LvQLlq+eal+Hr8XngG57iNuDahB+T7tcxcrBvMa6eURBlRJjjG9vrRIYdF++asDMxFA95NkXfwLSL5YYfwo3heTwT8xiE3Byb2; AWSALBCORS=AexPo8Pmp6oMCH3rjxzJLf4yo+LvQLlq+eal+Hr8XngG57iNuDahB+T7tcxcrBvMa6eURBlRJjjG9vrRIYdF++asDMxFA95NkXfwLSL5YYfwo3heTwT8xiE3Byb2'
   };
 
+  const filters = {
+    status: ["Retired","Unlisted"],
+    primaryCategory: ["Learning Resource", "Story", "Activity", "Interactive"]
+  };
+
+  // Add lastUpdatedOn filter if date is provided
+  if (createdOnDate) {
+    filters.lastUpdatedOn = createdOnDate;
+  }
+
   const payload = {
     request: {
-      filters: {
-        status: ["Live","Retired"],
-        primaryCategory: ["Learning Resource", "Story", "Activity", "Interactive"]
-      },
+      filters: filters,
       fields: [
         "identifier", "name", "author", "primaryCategory", "channel", "status",
         "contentType", "contentLanguage", "se_domains", "se_subdomains", "se_subjects",
@@ -44,7 +72,8 @@ async function fetchDataFromAPI(offset = 0) {
     }
   };
 
-  console.log(`[API MIGRATION] Fetching data with offset: ${offset}, limit: ${LIMIT}`);
+  const dateInfo = createdOnDate ? ` for date: ${createdOnDate}` : '';
+  console.log(`[API MIGRATION] Fetching data with offset: ${offset}, limit: ${LIMIT}${dateInfo}`);
   const res = await axios.post(API_URL, payload, { headers });
   return res.data;
 }
@@ -136,62 +165,94 @@ async function insertDataToDatabase(destClient, data) {
   console.log(`[API MIGRATION] ✅ Successfully processed ${data.length} records`);
 }
 
-// Main migration function with pagination
-async function migrateFromAPI(startOffset = 0) {
-  console.log('=== STARTING API MIGRATION ===');
+// Process migration for a specific date with pagination
+async function processDailyMigration(destClient, date) {
+  console.log(`\n[API MIGRATION] 📅 Processing date: ${date}`);
+  
+  let offset = 0;
+  let dateRecords = 0;
+  let hasMoreData = true;
+
+  while (hasMoreData) {
+    console.log(`[API MIGRATION] Fetching batch starting at offset: ${offset} for date: ${date}`);
+    
+    const response = await fetchDataFromAPI(offset, date);
+    
+    // Extract content from response
+    const apiData = response?.result?.content || [];
+    
+    if (!apiData || apiData.length === 0) {
+      console.log(`[API MIGRATION] No more data for date: ${date}`);
+      hasMoreData = false;
+      break;
+    }
+    
+    console.log(`[API MIGRATION] Received ${apiData.length} records from API for date: ${date}`);
+
+    // Insert data into database
+    await insertDataToDatabase(destClient, apiData);
+
+    dateRecords += apiData.length;
+    console.log(`[API MIGRATION] 📊 Date Progress: Processed ${dateRecords} records for ${date} (current offset: ${offset})`);
+    
+    // If we got less than LIMIT records, we've reached the end for this date
+    if (apiData.length < LIMIT) {
+      console.log(`[API MIGRATION] Reached end of data for date: ${date} (received less than limit)`);
+      hasMoreData = false;
+    } else {
+      offset += LIMIT;
+      console.log(`[API MIGRATION] ✅ Batch completed for ${date}. Next offset will be: ${offset}`);
+    }
+  }
+
+  console.log(`[API MIGRATION] ✅ Completed processing for ${date}: ${dateRecords} records`);
+  return dateRecords;
+}
+
+// Main migration function with date range (January 15, 2026 to February 5, 2026)
+async function migrateFromAPI(startDate = '2026-01-15', endDate = '2026-02-05') {
+  console.log('=== STARTING API MIGRATION WITH DATE RANGE ===');
+  console.log(`[API MIGRATION] Date Range: ${startDate} to ${endDate}`);
+  
   const destClient = new Client(dbConfig.destination);
 
   try {
     await destClient.connect();
     console.log('[API MIGRATION] Connected to destination database');
 
-    // Resume from specified offset (useful for recovery)
-    let offset = startOffset;
+    // Generate array of dates to process
+    const dates = getDateRange(startDate, endDate);
+    console.log(`[API MIGRATION] Total dates to process: ${dates.length}`);
+    console.log(`[API MIGRATION] Dates: ${dates.join(', ')}`);
+
     let totalRecords = 0;
-    let hasMoreData = true;
-    
-    if (startOffset > 0) {
-      console.log(`[API MIGRATION] ⚠️ Resuming from offset: ${startOffset}`);
-    }
+    let processedDates = 0;
 
-    while (hasMoreData) {
-      console.log(`\n[API MIGRATION] Fetching batch starting at offset: ${offset}`);
+    // Process each date
+    for (const date of dates) {
+      console.log(`\n[API MIGRATION] ============================================`);
+      console.log(`[API MIGRATION] Processing ${processedDates + 1}/${dates.length}: ${date}`);
+      console.log(`[API MIGRATION] ============================================`);
       
-      const response = await fetchDataFromAPI(offset);
-      
-      // Extract content from response
-      const apiData = response?.result?.content || [];
-      
-      if (!apiData || apiData.length === 0) {
-        console.log('[API MIGRATION] No more data to fetch');
-        hasMoreData = false;
-        break;
-      }
-      
-      console.log(`[API MIGRATION] Received ${apiData.length} records from API`);
-
-      // Insert data into database
-      await insertDataToDatabase(destClient, apiData);
-
-      totalRecords += apiData.length;
-      console.log(`[API MIGRATION] 📊 Progress: Processed ${totalRecords} records so far (current offset: ${offset})`);
-      
-      // If we got less than LIMIT records, we've reached the end
-      if (apiData.length < LIMIT) {
-        console.log('[API MIGRATION] Reached end of data (received less than limit)');
-        hasMoreData = false;
-      } else {
-        offset += LIMIT; // Move to next batch: 0 -> 1000 -> 2000 -> 3000...
-        console.log(`[API MIGRATION] ✅ Batch completed. Next offset will be: ${offset}`);
+      try {
+        const dateRecords = await processDailyMigration(destClient, date);
+        totalRecords += dateRecords;
+        processedDates++;
+        
+        console.log(`[API MIGRATION] ✅ Date ${date} completed: ${dateRecords} records`);
+        console.log(`[API MIGRATION] 📊 Overall Progress: ${processedDates}/${dates.length} dates, ${totalRecords} total records`);
+      } catch (error) {
+        console.error(`[API MIGRATION] ❌ Error processing date ${date}:`, error.message);
+        console.error(`[API MIGRATION] ⚠️ Continuing with next date...`);
+        // Continue with next date instead of stopping
       }
     }
 
     console.log(`\n[API MIGRATION] ✅ API migration completed successfully`);
+    console.log(`[API MIGRATION] Total dates processed: ${processedDates}/${dates.length}`);
     console.log(`[API MIGRATION] Total records processed: ${totalRecords}`);
   } catch (error) {
     console.error('[API MIGRATION] ❌ Error during API migration:', error);
-    console.error(`[API MIGRATION] ⚠️ Failed at offset: ${offset}`);
-    console.error(`[API MIGRATION] 💡 To resume, run: migrateFromAPI(${offset})`);
     throw error;
   } finally {
     await destClient.end();
@@ -202,25 +263,28 @@ async function migrateFromAPI(startOffset = 0) {
 
 // Run the migration only if this script is run directly
 if (require.main === module) {
-  console.log('Running api-migration.js directly');
+  console.log('Running content-migration.js directly');
   
-  // Get offset from command line argument (e.g., node api-migration.js 10000)
-  const startOffset = parseInt(process.argv[2]) || 0;
+  // Get date range from command line arguments
+  // Usage: node content-migration.js [startDate] [endDate]
+  // Example: node content-migration.js 2026-01-15 2026-02-05
+  const startDate = process.argv[2] || '2026-01-15';
+  const endDate = process.argv[3] || '2026-02-05';
   
-  if (startOffset > 0) {
-    console.log(`📍 Starting migration from offset: ${startOffset}`);
-  }
+  console.log(`📍 Starting migration with date range: ${startDate} to ${endDate}`);
   
-  migrateFromAPI(startOffset).catch(err => {
+  migrateFromAPI(startDate, endDate).catch(err => {
     console.error('API migration failed:', err);
     process.exit(1);
   });
 } else {
-  console.log('api-migration.js loaded as a module');
+  console.log('content-migration.js loaded as a module');
 }
 
 module.exports = {
   migrateFromAPI,
   fetchDataFromAPI,
-  insertDataToDatabase
+  insertDataToDatabase,
+  processDailyMigration,
+  getDateRange
 };

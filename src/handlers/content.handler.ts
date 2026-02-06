@@ -42,7 +42,9 @@ export class ContentHandler {
       // Upsert content tracker data (update if exists and status changed, create if not)
       const result = await this.dbService.upsertContentTracker(transformedData);
 
-      this.logger.logDatabaseOperation('upsert', 'ContentTracker', {
+      this.logger.info('Database operation: upsert ContentTracker', {
+        operation: 'upsert',
+        table: 'ContentTracker',
         userId: data.userId,
         contentId: data.contentId,
         tenantId: data.tenantId,
@@ -51,10 +53,14 @@ export class ContentHandler {
       return result;
     } catch (error) {
       if (error instanceof ValidationError) {
-        this.logger.logValidationError(
-          error.field || 'unknown',
-          null,
-          error.message,
+        this.logger.error(
+          `Validation error: ${error.message}`,
+          error as Error,
+          {
+            field: error.field || 'unknown',
+            userId: data.userId,
+            contentId: data.contentId,
+          },
         );
         throw new Error(`Validation failed: ${error.message}`);
       }

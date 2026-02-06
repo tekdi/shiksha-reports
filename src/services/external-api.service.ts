@@ -45,13 +45,6 @@ export class ExternalApiService {
     // Request interceptor
     this.axiosInstance.interceptors.request.use(
       (config) => {
-        if (this.config.enableDetailedLogging) {
-          this.logger.info('Making external API request', {
-            url: config.url,
-            method: config.method,
-            timeout: config.timeout,
-          });
-        }
         return config;
       },
       (error) => {
@@ -63,19 +56,11 @@ export class ExternalApiService {
     // Response interceptor
     this.axiosInstance.interceptors.response.use(
       (response) => {
-        if (this.config.enableDetailedLogging) {
-          this.logger.info('External API response received', {
-            status: response.status,
-            statusText: response.statusText,
-            dataSize: JSON.stringify(response.data).length,
-          });
-        }
         return response;
       },
       (error) => {
         this.logger.error('External API request failed', error, {
           status: error.response?.status,
-          statusText: error.response?.statusText,
           url: error.config?.url,
         });
         return Promise.reject(error);
@@ -85,18 +70,39 @@ export class ExternalApiService {
 
   /**
    * Fetch course data from Pratham Digital API
+   * Fetches Live (created) and Retired+Unlisted (updated) courses
    */
   async fetchCourseData(): Promise<ExternalCourseApiResponse> {
     try {
-      this.logger.info('Fetching course data from Pratham Digital API', {
-        endpoint: this.config.externalApi.endpoint,
+      // Fetch Live (created) and Retired+Unlisted (updated) courses in parallel
+      const [createdResponse, updatedResponse] = await Promise.all([
+        this.makeCourseApiRequest(['Live'], 'createdOn'),
+        this.makeCourseApiRequest(['Retired', 'Unlisted'], 'lastUpdatedOn'),
+      ]);
+
+      // Process both responses
+      const createdData = this.processApiResponse(createdResponse, 'course') as ExternalCourseApiResponse;
+      const updatedData = this.processApiResponse(updatedResponse, 'course') as ExternalCourseApiResponse;
+
+      // Combine the results
+      const combinedData = [
+        ...(createdData.data || []),
+        ...(updatedData.data || []),
+      ];
+
+      this.logger.info('Fetched course data', {
+        live: createdData.data?.length || 0,
+        retired_unlisted: updatedData.data?.length || 0,
+        total: combinedData.length,
       });
 
-      const response = await this.makeApiRequest('course');
-      return this.processApiResponse(response, 'course') as ExternalCourseApiResponse;
+      return {
+        success: true,
+        data: combinedData,
+      };
 
     } catch (error) {
-      this.logger.error('Failed to fetch course data from Pratham Digital API', error);
+      this.logger.error('Failed to fetch course data', error);
       
       return {
         success: false,
@@ -107,18 +113,39 @@ export class ExternalApiService {
 
   /**
    * Fetch question set data from Pratham Digital API (for future use)
+   * Fetches Live (created) and Retired+Unlisted (updated) question sets
    */
   async fetchQuestionSetData(): Promise<ExternalQuestionSetApiResponse> {
     try {
-      this.logger.info('Fetching question set data from Pratham Digital API', {
-        endpoint: this.config.externalApi.endpoint,
+      // Fetch Live (created) and Retired+Unlisted (updated) question sets in parallel
+      const [createdResponse, updatedResponse] = await Promise.all([
+        this.makeQuestionSetApiRequest(['Live'], 'createdOn'),
+        this.makeQuestionSetApiRequest(['Retired', 'Unlisted'], 'lastUpdatedOn'),
+      ]);
+
+      // Process both responses
+      const createdData = this.processApiResponse(createdResponse, 'questionSet') as ExternalQuestionSetApiResponse;
+      const updatedData = this.processApiResponse(updatedResponse, 'questionSet') as ExternalQuestionSetApiResponse;
+
+      // Combine the results
+      const combinedData = [
+        ...(createdData.data || []),
+        ...(updatedData.data || []),
+      ];
+
+      this.logger.info('Fetched question set data', {
+        live: createdData.data?.length || 0,
+        retired_unlisted: updatedData.data?.length || 0,
+        total: combinedData.length,
       });
 
-      const response = await this.makeApiRequest('questionSet');
-      return this.processApiResponse(response, 'questionSet') as ExternalQuestionSetApiResponse;
+      return {
+        success: true,
+        data: combinedData,
+      };
 
     } catch (error) {
-      this.logger.error('Failed to fetch question set data from Pratham Digital API', error);
+      this.logger.error('Failed to fetch question set data', error);
       
       return {
         success: false,
@@ -132,15 +159,11 @@ export class ExternalApiService {
    */
   async fetchContentData(): Promise<ExternalContentApiResponse> {
     try {
-      this.logger.info('Fetching content data from Pratham Digital API', {
-        endpoint: this.config.externalApi.endpoint,
-      });
-
       const response = await this.makeApiRequest('content');
       return this.processApiResponse(response, 'content') as ExternalContentApiResponse;
 
     } catch (error) {
-      this.logger.error('Failed to fetch content data from Pratham Digital API', error);
+      this.logger.error('Failed to fetch content data', error);
       
       return {
         success: false,
@@ -178,7 +201,7 @@ export class ExternalApiService {
     const dataTypeConfig = this.config.dataTypes[dataType];
     
     // Get date for filtering (custom date or previous day in IST)
-    // const filterDate = this.config.dateFilter.customDate || this.getPreviousDayIST();
+    const filterDate = this.config.dateFilter.customDate || this.getPreviousDayIST();
     
     // this.logger.info(`Making API request for ${dataType} data`, {
     //   date: filterDate,
@@ -189,14 +212,88 @@ export class ExternalApiService {
     const requestBody: PrathamApiRequest = {
       request: {
         filters: {
-          status: ['Live','Retired'],
+          status: ['Live'],
           primaryCategory: Array.isArray(dataTypeConfig.primaryCategory) 
             ? dataTypeConfig.primaryCategory 
             : [dataTypeConfig.primaryCategory],
-          // createdOn: filterDate, // Previous day's date in IST or custom date from config
+          createdOn: filterDate, // Previous day's date in IST or custom date from config
         },
         fields: dataTypeConfig.fields,
         limit:10000, // Fetch all data in one request
+        offset: 0,
+      },
+    };
+
+    const requestConfig: AxiosRequestConfig = {
+      method: 'POST',
+      url: this.config.externalApi.endpoint,
+      data: requestBody,
+    };
+
+    return this.axiosInstance.request(requestConfig);
+  }
+
+  /**
+   * Make API request for question sets with custom status and date field
+   * Reusable method to fetch question sets with different filters
+   */
+  private async makeQuestionSetApiRequest(
+    statusArray: string[],
+    dateField: 'createdOn' | 'lastUpdatedOn',
+  ): Promise<AxiosResponse<PrathamApiResponse>> {
+    const dataTypeConfig = this.config.dataTypes.questionSet;
+    
+    // Get date for filtering (custom date or previous day in IST)
+    const filterDate = this.config.dateFilter.customDate || this.getPreviousDayIST();
+    
+    const requestBody: PrathamApiRequest = {
+      request: {
+        filters: {
+          status: statusArray,
+          primaryCategory: Array.isArray(dataTypeConfig.primaryCategory) 
+            ? dataTypeConfig.primaryCategory 
+            : [dataTypeConfig.primaryCategory],
+          [dateField]: filterDate, // Use dynamic date field (createdOn or lastUpdatedOn)
+        },
+        fields: dataTypeConfig.fields,
+        limit: 10000, // Fetch all data in one request
+        offset: 0,
+      },
+    };
+
+    const requestConfig: AxiosRequestConfig = {
+      method: 'POST',
+      url: this.config.externalApi.endpoint,
+      data: requestBody,
+    };
+
+    return this.axiosInstance.request(requestConfig);
+  }
+
+  /**
+   * Make API request for courses with custom status and date field
+   * Reusable method to fetch courses with different filters
+   */
+  private async makeCourseApiRequest(
+    statusArray: string[],
+    dateField: 'createdOn' | 'lastUpdatedOn',
+  ): Promise<AxiosResponse<PrathamApiResponse>> {
+    const dataTypeConfig = this.config.dataTypes.course;
+    
+    // Get date for filtering (custom date or previous day in IST)
+    const filterDate = this.config.dateFilter.customDate || this.getPreviousDayIST(); 
+    
+    const requestBody: PrathamApiRequest = {
+      request: {
+        filters: {
+          status: statusArray,
+          primaryCategory: Array.isArray(dataTypeConfig.primaryCategory) 
+            ? dataTypeConfig.primaryCategory 
+            : [dataTypeConfig.primaryCategory],
+          [dateField]: filterDate, // Use dynamic date field (createdOn or lastUpdatedOn)
+        },
+        fields: dataTypeConfig.fields,
+        limit: 10000, // Fetch all data in one request
         offset: 0,
       },
     };
@@ -244,11 +341,6 @@ export class ExternalApiService {
     } else {
       throw new Error('Invalid Pratham API response structure - no content or QuestionSet found');
     }
-
-    this.logger.info('Successfully processed Pratham API response', {
-      totalItems: prathamData.length,
-      count: data.result.count,
-    });
 
     if (dataType === 'course') {
       return {
@@ -385,8 +477,6 @@ export class ExternalApiService {
    */
   async testConnection(): Promise<boolean> {
     try {
-      this.logger.info('Testing Pratham Digital API connection');
-      
       // Test with a minimal course request
       const testRequest: PrathamApiRequest = {
         request: {
@@ -406,10 +496,7 @@ export class ExternalApiService {
         { timeout: 10000 }
       );
       
-      this.logger.info('API connection test successful', { 
-        status: response.status,
-        hasData: !!response.data?.result?.content?.length
-      });
+      this.logger.info('API connection test successful');
       return true;
     } catch (error) {
       this.logger.error('API connection test failed', error);
@@ -438,7 +525,7 @@ export class ExternalApiService {
   // Fetch course hierarchy by identifier (no token required)
   async getCourseHierarchy(doId: string): Promise<any | null> {
     const base = this.config.externalApi.contentBaseUrl;
-    const url = `${base}/content/v3/hierarchy/${doId}`;
+    const url = `${base}/content/v3/hierarchy/${doId}?mode=edit`;
     try {
       const res = await this.requestWithRetry(() => this.axiosInstance.get(url));
       return (res as any)?.data?.result?.content ?? null;

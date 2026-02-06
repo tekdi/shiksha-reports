@@ -11,6 +11,9 @@ import { TransformService } from '../constants/transformation/transform-service'
 import { DatabaseService } from './database.service';
 import { CronJobStatus, ExternalApiResponse, PrathamContentData } from '../types/cron.types';
 import { StructuredLogger } from '../utils/logger';
+import * as fs from 'fs';
+import * as path from 'path';
+import { console } from 'inspector';
 
 @Injectable()
 export class CronJobService implements OnModuleInit, OnModuleDestroy {
@@ -39,9 +42,7 @@ export class CronJobService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleInit() {
-    this.logger.info('CronJobService initialized', {
-      schedule: this.config.schedule,
-    });
+    this.logger.info('CronJobService initialized');
 
     // Test external API connection on startup
     const isConnected = await this.externalApiService.testConnection();
@@ -69,36 +70,33 @@ export class CronJobService implements OnModuleInit, OnModuleDestroy {
     this.jobStatus.totalExecutions++;
 
     try {
-      this.logger.info('Starting daily cron job execution', {
-        executionNumber: this.jobStatus.totalExecutions,
-        timestamp: this.jobStatus.lastExecution,
-      });
+      this.logger.info('=== Starting daily cron job execution ===');
 
-      // Process Course data
-      // await this.processCourseData();
+      //Process Course data
+      const courseResult = await this.processCourseData();
 
       // Process QuestionSet data
-      await this.processQuestionSetData();
+      const questionSetResult = await this.processQuestionSetData();
 
       // Process Content data
-      // await this.processContentData();
+      const contentResult = await this.processContentData();
 
       this.jobStatus.lastSuccess = new Date();
       this.jobStatus.successfulExecutions++;
       this.jobStatus.lastError = undefined;
 
-      this.logger.info('Daily cron job completed successfully', {
-        executionNumber: this.jobStatus.totalExecutions,
+      this.logger.info('=== Daily cron job completed successfully ===', {
+        courses: courseResult.totalProcessed,
+        questionSets: questionSetResult.totalProcessed,
+        content: contentResult.totalProcessed,
+        duration: `${((Date.now() - this.jobStatus.lastExecution.getTime()) / 1000 / 60).toFixed(2)} minutes`,
       });
 
     } catch (error) {
       this.jobStatus.failedExecutions++;
       this.jobStatus.lastError = error.message;
 
-      this.logger.error('Daily cron job failed', error, {
-        executionNumber: this.jobStatus.totalExecutions,
-        errorCount: this.jobStatus.failedExecutions,
-      });
+      this.logger.error('=== Daily cron job failed ===', error);
     } finally {
       this.jobStatus.isRunning = false;
     }
@@ -106,6 +104,7 @@ export class CronJobService implements OnModuleInit, OnModuleDestroy {
 
   /**
    * Process course data from Pratham Digital API
+   * Processes Live (created), Retired (updated), and Unlisted (updated) courses
    */
   private async processCourseData(): Promise<{
     totalProcessed: number;
@@ -113,26 +112,40 @@ export class CronJobService implements OnModuleInit, OnModuleDestroy {
   }> {
     const startTime = Date.now();
     let totalProcessed = 0;
+    let createdCount = 0;
+    let retiredCount = 0;
+    let unlistedCount = 0;
+    const failedCourses: Array<{ identifier: string; name: string; error: string; errorDetail: any }> = [];
 
     try {
-      this.logger.info('Fetching course data from Pratham Digital API');
+      this.logger.info('→ Fetching course data (Live + Retired + Unlisted)');
 
-      // Fetch data from external API
+      // Fetch data from external API (combines Live, Retired, and Unlisted)
       const apiResponse = await this.externalApiService.fetchCourseData();
       if (!apiResponse.success || !apiResponse.data || apiResponse.data.length === 0) {
-        this.logger.info('No course data available from Pratham Digital API', {
-          success: apiResponse.success,
-          dataLength: apiResponse.data?.length || 0,
-        });
+        this.logger.info('No course data available');
         return { totalProcessed: 0, duration: Date.now() - startTime };
       }
 
-      this.logger.info(`Processing ${apiResponse.data.length} courses`);
+      const totalCourses = apiResponse.data.length;
+      this.logger.info(`Processing ${totalCourses} courses...`);
 
       // Transform and save each course individually
-      for (const courseData of apiResponse.data) {
+      for (let i = 0; i < apiResponse.data.length; i++) {
+        const courseData = apiResponse.data[i];
+        
         try {
           const transformedCourse = await this.transformService.transformExternalCourseData(courseData);
+
+          // Track count by status
+          const status = transformedCourse.status?.toLowerCase();
+          if (status === 'retired') {
+            retiredCount++;
+          } else if (status === 'unlisted') {
+            unlistedCount++;
+          } else {
+            createdCount++;
+          }
 
           // Enrich with hierarchy (level arrays + childnodes)
           const hierarchy = await this.externalApiService.getCourseHierarchy(courseData.identifier);
@@ -148,13 +161,40 @@ export class CronJobService implements OnModuleInit, OnModuleDestroy {
           await this.saveCourseData(transformedCourse);
           totalProcessed++;
         } catch (error) {
-          this.logger.error('Failed to process course data', error, {
-            identifier: courseData.identifier,
+          // Track failed course details
+          failedCourses.push({
+            identifier: courseData.identifier || 'UNKNOWN',
+            name: courseData.name || 'UNKNOWN',
+            error: error.message || 'Unknown error',
+            errorDetail: {
+              code: error.code,
+              constraint: error.constraint,
+              detail: error.detail,
+            },
           });
+          
+          this.logger.error(`Failed to process course: ${courseData.identifier}`, error);
         }
       }
 
-      this.logger.info(`Successfully processed ${totalProcessed} courses`);
+      // Log summary with failed courses details
+      this.logger.info('✓ Course processing completed', {
+        total: totalProcessed,
+        live: createdCount,
+        retired: retiredCount,
+        unlisted: unlistedCount,
+        failed: failedCourses.length,
+      });
+
+      // Log detailed failed courses information if any
+      if (failedCourses.length > 0) {
+        this.logger.error(`Failed to process ${failedCourses.length} courses`, null, {
+          failedCourses: failedCourses,
+        });
+
+        // Write failed courses to a file for easy reference
+        await this.writeFailedCoursesToFile(failedCourses);
+      }
 
     } catch (error) {
       this.logger.error('Failed to process course data', error);
@@ -254,32 +294,45 @@ export class CronJobService implements OnModuleInit, OnModuleDestroy {
 
   /**
    * Process question set data from Pratham Digital API (for future use)
+   * Processes Live (created), Retired (updated), and Unlisted (updated) question sets
    */
   private async processQuestionSetData() {
     const startTime = Date.now();
     let totalProcessed = 0;
+    let createdCount = 0;
+    let retiredCount = 0;
+    let unlistedCount = 0;
+    let failedCount = 0;
 
     try {
-      this.logger.info('Fetching question set data from Pratham Digital API');
+      this.logger.info('→ Fetching question set data (Live + Retired + Unlisted)');
 
-      // Fetch data from external API
-      const apiResponse = await this.externalApiService.fetchQuestionSetData();
+      // Fetch data from external API (combines Live, Retired, and Unlisted)
+      const apiResponse = await this.externalApiService.fetchQuestionSetData(); 
 
       if (!apiResponse.success || !apiResponse.data || apiResponse.data.length === 0) {
-        this.logger.info('No question set data available from Pratham Digital API', {
-          success: apiResponse.success,
-          dataLength: apiResponse.data?.length || 0,
-        });
+        this.logger.info('No question set data available');
         return { totalProcessed: 0, duration: Date.now() - startTime };
       }
 
-      this.logger.info(`Processing ${apiResponse.data.length} question sets`);
-
-      // Transform and save each question set individually
-      for (const questionSetData of apiResponse.data) {
+      const totalItems = apiResponse.data.length;
+      this.logger.info(`Processing ${totalItems} question sets...`);
+      
+      for (let i = 0; i < apiResponse.data.length; i++) {
+        const questionSetData = apiResponse.data[i];
+        
         try {
           const transformedQuestionSet = await this.transformService.transformQuestionSetData(questionSetData);
-          this.logger.debug(`QuestionSet ${questionSetData.identifier} status: ${transformedQuestionSet.status}`);
+
+          // Track count by status
+          const status = transformedQuestionSet.status?.toLowerCase();
+          if (status === 'retired') {
+            retiredCount++;
+          } else if (status === 'unlisted') {
+            unlistedCount++;
+          } else {
+            createdCount++;
+          }
 
           // Enrich with hierarchy (level arrays + child_nodes)
           const qs = await this.externalApiService.getQuestionSetHierarchy(questionSetData.identifier);
@@ -293,17 +346,22 @@ export class CronJobService implements OnModuleInit, OnModuleDestroy {
             const compact = this.buildCompactQuestionSetChildren(qs);
             (transformedQuestionSet as any).childNodes = compact.length > 0 ? JSON.stringify(compact) : (transformedQuestionSet as any).childNodes || null;
           }
-          console.log(transformedQuestionSet);
+
           await this.saveQuestionSetData(transformedQuestionSet);
           totalProcessed++;
         } catch (error) {
-          this.logger.error('Failed to process question set data', error, {
-            identifier: questionSetData.identifier,
-          });
+          failedCount++;
+          this.logger.error(`Failed to process question set: ${questionSetData.identifier}`, error);
         }
       }
 
-      this.logger.info(`Successfully processed ${totalProcessed} question sets`);
+      this.logger.info('✓ Question set processing completed', {
+        total: totalProcessed,
+        live: createdCount,
+        retired: retiredCount,
+        unlisted: unlistedCount,
+        failed: failedCount,
+      });
 
     } catch (error) {
       this.logger.error('Failed to process question set data', error);
@@ -316,6 +374,7 @@ export class CronJobService implements OnModuleInit, OnModuleDestroy {
 
   /**
    * Process content data from Pratham Digital API
+   * Processes Live (created), Retired (updated), and Unlisted (updated) content items
    */
   private async processContentData(): Promise<{
     totalProcessed: number;
@@ -323,37 +382,57 @@ export class CronJobService implements OnModuleInit, OnModuleDestroy {
   }> {
     const startTime = Date.now();
     let totalProcessed = 0;
+    let createdCount = 0;
+    let retiredCount = 0;
+    let unlistedCount = 0;
+    let failedCount = 0;
 
     try {
-      this.logger.info('Fetching content data from Pratham Digital API');
+      this.logger.info('→ Fetching content data (Live + Retired + Unlisted)');
 
-      // Fetch data from external API
+      // Fetch data from external API (combines Live, Retired, and Unlisted)
       const apiResponse = await this.externalApiService.fetchContentData();
 
       if (!apiResponse.success || !apiResponse.data || apiResponse.data.length === 0) {
-        this.logger.info('No content data available from Pratham Digital API', {
-          success: apiResponse.success,
-          dataLength: apiResponse.data?.length || 0,
-        });
+        this.logger.info('No content data available');
         return { totalProcessed: 0, duration: Date.now() - startTime };
       }
 
-      this.logger.info(`Processing ${apiResponse.data.length} content items`);
+      const totalItems = apiResponse.data.length;
+      this.logger.info(`Processing ${totalItems} content items...`);
 
       // Transform and save each content item individually
-      for (const contentData of apiResponse.data) {
+      for (let i = 0; i < apiResponse.data.length; i++) {
+        const contentData = apiResponse.data[i];
+        
         try {
           const transformedContent = await this.transformService.transformContentData(contentData);
+
+          // Track count by status
+          const status = transformedContent.status?.toLowerCase();
+          if (status === 'retired') {
+            retiredCount++;
+          } else if (status === 'unlisted') {
+            unlistedCount++;
+          } else {
+            createdCount++;
+          }
+
           await this.saveContentData(transformedContent);
           totalProcessed++;
         } catch (error) {
-          this.logger.error('Failed to process content data', error, {
-            identifier: contentData.identifier,
-          });
+          failedCount++;
+          this.logger.error(`Failed to process content: ${contentData.identifier}`, error);
         }
       }
 
-      this.logger.info(`Successfully processed ${totalProcessed} content items`);
+      this.logger.info('✓ Content processing completed', {
+        total: totalProcessed,
+        live: createdCount,
+        retired: retiredCount,
+        unlisted: unlistedCount,
+        failed: failedCount,
+      });
 
     } catch (error) {
       this.logger.error('Failed to process content data', error);
@@ -383,14 +462,12 @@ export class CronJobService implements OnModuleInit, OnModuleDestroy {
             updated_at: new Date(),
           }
         );
-        this.logger.debug('Updated existing course', { identifier: courseData.identifier });
       } else {
         // Create new course
         await this.courseRepo.save(courseData);
-        this.logger.debug('Created new course', { identifier: courseData.identifier });
       }
     } catch (error) {
-      this.logger.error('Failed to save course data', error, {
+      this.logger.error('Failed to save course', error, {
         identifier: courseData.identifier,
       });
       throw error;
@@ -416,14 +493,12 @@ export class CronJobService implements OnModuleInit, OnModuleDestroy {
             updated_at: new Date(),
           }
         );
-        this.logger.debug('Updated existing question set', { identifier: questionSetData.identifier });
       } else {
         // Create new question set
         await this.questionSetRepo.save(questionSetData);
-        this.logger.debug('Created new question set', { identifier: questionSetData.identifier });
       }
     } catch (error) {
-      this.logger.error('Failed to save question set data', error, {
+      this.logger.error('Failed to save question set', error, {
         identifier: questionSetData.identifier,
       });
       throw error;
@@ -449,14 +524,12 @@ export class CronJobService implements OnModuleInit, OnModuleDestroy {
             updated_at: new Date(),
           }
         );
-        this.logger.debug('Updated existing content', { identifier: contentData.identifier });
       } else {
         // Create new content
         await this.contentRepo.save(contentData);
-        this.logger.debug('Created new content', { identifier: contentData.identifier });
       }
     } catch (error) {
-      this.logger.error('Failed to save content data', error, {
+      this.logger.error('Failed to save content', error, {
         identifier: contentData.identifier,
       });
       throw error;
@@ -476,6 +549,38 @@ export class CronJobService implements OnModuleInit, OnModuleDestroy {
   async triggerManualExecution(): Promise<void> {
     this.logger.info('Manual cron job execution triggered');
     await this.executeCronJob();
+  }
+
+  /**
+   * Write failed courses to a JSON file for easy debugging
+   */
+  private async writeFailedCoursesToFile(
+    failedCourses: Array<{ identifier: string; name: string; error: string; errorDetail: any }>
+  ): Promise<void> {
+    try {
+      const timestamp = new Date().toISOString().replace(/:/g, '-').split('.')[0];
+      const logsDir = path.join(process.cwd(), 'logs');
+      
+      // Create logs directory if it doesn't exist
+      if (!fs.existsSync(logsDir)) {
+        fs.mkdirSync(logsDir, { recursive: true });
+      }
+
+      const filename = `failed-courses-${timestamp}.json`;
+      const filepath = path.join(logsDir, filename);
+
+      const errorReport = {
+        timestamp: new Date().toISOString(),
+        totalFailed: failedCourses.length,
+        failedCourses: failedCourses,
+      };
+
+      fs.writeFileSync(filepath, JSON.stringify(errorReport, null, 2), 'utf8');
+      
+      this.logger.info(`Failed courses report saved: ${filename}`);
+    } catch (error) {
+      this.logger.error('Failed to write failed courses to file', error);
+    }
   }
 
   /**
