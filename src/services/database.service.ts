@@ -187,7 +187,7 @@ export class DatabaseService {
     updates: Record<string, string | null | undefined>,
   ) {
     // Only allow specific columns to be updated
-    const allowed = new Set(['Subject', 'Fees', 'Registration', 'Board', 'MemberStatus']);
+    const allowed = new Set(['Subject', 'Fees', 'Registration', 'Board', 'MemberStatus', 'CohortID', 'UserID', 'AcademicYearID', 'Slot']);
     const entries = Object.entries(updates).filter(([k, v]) =>
       allowed.has(k),
     );

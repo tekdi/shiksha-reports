@@ -363,12 +363,66 @@ export class TransformService {
 
       if (data.cohorts && Array.isArray(data.cohorts)) {
         for (const cohort of data.cohorts) {
+           const c = cohort as any;
+          // Handle customFields whether it's an array or single object
+          let customFields: any[] = [];
+          if (Array.isArray(c.customFields)) {
+            customFields = c.customFields;
+          } else if (c.customFields) {
+            customFields = [c.customFields];
+          }
+
+          const extractedFields: Record<string, any> = {};
+
+          const wantedLabels = new Map<string, string>([
+            ['subject', 'Subject'],
+            ['fees', 'Fees'],
+            ['registration', 'Registration'],
+            ['board', 'Board'],
+            ['slots', 'Slot'],
+          ]);
+
+          const wantedIds = new Map<string, string>([
+            ['f93c0ac3-f827-4794-9457-441fa1057b42', 'Board'],
+            ['69a9dba2-e05e-40cd-a39c-047b9b676b5c', 'Subject'],
+            ['f3658b23-1394-48a9-afc5-7589874465af', 'Slot'],
+          ]);
+
+          for (const field of customFields) {
+            // Check by ID
+            if (field?.fieldId && wantedIds.has(field.fieldId)) {
+              const key = wantedIds.get(field.fieldId);
+              extractedFields[key] = field.value;
+              continue;
+            }
+
+            // Check by Label
+            const label = (field?.label || '').toString().trim().toLowerCase();
+            if (wantedLabels.has(label)) {
+              const key = wantedLabels.get(label);
+
+              let value = field?.value;
+              if (value === undefined || value === null) {
+                if (Array.isArray(field.selectedValues)) {
+                  value = field.selectedValues
+                    .map((v: any) =>
+                      v?.value ?? v?.label ?? v?.name ?? v?.id ?? (typeof v === 'string' ? v : null)
+                    )
+                    .filter((v: any) => v != null)
+                    .join(',');
+                }
+              }
+              extractedFields[key] = value;
+            }
+          }
+
           const cohortMember = {
             UserID: userId,
             CohortID: cohort.batchId,
             MemberStatus: cohort.cohortMemberStatus || 'active',
             AcademicYearID: cohort.academicYearId,
             CohortMemberID: cohort.cohortMemberId,
+             ...extractedFields,
           };
           cohortMembers.push(cohortMember);
         }
