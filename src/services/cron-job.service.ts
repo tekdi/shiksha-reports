@@ -58,7 +58,7 @@ export class CronJobService implements OnModuleInit, OnModuleDestroy {
   /**
    * Main cron job method - runs at 12 AM IST (midnight) daily
    */
-  @Cron('30 18 * * *') // Runs at 12:00 AM IST (18:30 UTC = 00:00 IST)
+  // @Cron('30 18 * * *') // Disabled: replaced by Kafka event-driven sync via ContentMetadataHandler
   async executeCronJob() {
     if (this.jobStatus.isRunning) {
       this.logger.warn('Cron job is already running, skipping this execution');

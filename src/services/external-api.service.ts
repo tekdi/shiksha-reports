@@ -363,7 +363,7 @@ export class ExternalApiService {
   /**
    * Convert Pratham API data to legacy format for backward compatibility
    */
-  private convertPrathamToLegacyFormat(prathamData: any[]): ExternalCourseData[] {
+  convertPrathamToLegacyFormat(prathamData: any[]): ExternalCourseData[] {
     return prathamData
       .filter((item) => item && item.identifier)
       .map((item) => ({
@@ -391,7 +391,7 @@ export class ExternalApiService {
   /**
    * Convert Pratham API data to QuestionSet format
    */
-  private convertPrathamToQuestionSetFormat(prathamData: any[]): ExternalQuestionSetData[] {
+  convertPrathamToQuestionSetFormat(prathamData: any[]): ExternalQuestionSetData[] {
     return prathamData
       .filter((item) => item && item.identifier)
       .map((item) => ({
@@ -416,7 +416,7 @@ export class ExternalApiService {
   /**
    * Convert Pratham API data to Content format
    */
-  private convertPrathamToContentFormat(prathamData: any[]): ExternalContentData[] {
+  convertPrathamToContentFormat(prathamData: any[]): ExternalContentData[] {
     return prathamData
       .filter((item) => item && item.identifier)
       .map((item) => ({
@@ -471,6 +471,63 @@ export class ExternalApiService {
       .filter((item) => item.identifier); // Only include items with valid identifier
   }
 
+
+  /**
+   * Fetch metadata for a single item by identifier.
+   * Used by Kafka event handlers to get full metadata after receiving a publish/status-change signal.
+   * Does NOT filter by primaryCategory — works for Course, Content, and QuestionSet.
+   */
+  async fetchSingleItemMetadata(identifier: string, primaryCategory?: string, statuses?: string[]): Promise<any | null> {
+    try {
+      // Use the broadest field list (course fields cover all needed fields for course+content)
+      // Do NOT filter by primaryCategory — fetch whatever exists for this identifier
+      const allFields = [
+        'identifier', 'name', 'author', 'primaryCategory', 'channel', 'status',
+        'contentType', 'contentLanguage', 'se_domains', 'se_subdomains', 'se_subjects',
+        'targetAgeGroup', 'audience', 'program', 'keywords', 'description',
+        'createdBy', 'lastPublishedOn', 'childNodes', 'createdOn',
+        'assessmentType', 'domain', 'subDomain', 'subject',
+      ];
+
+      const filters: any = { identifier };
+      if (statuses && statuses.length > 0) {
+        filters.status = statuses;
+      }
+
+      const requestBody = {
+        request: {
+          filters,
+          fields: allFields,
+          limit: 1,
+          offset: 0,
+        },
+      };
+
+      const response = await this.axiosInstance.post(
+        this.config.externalApi.endpoint,
+        requestBody,
+      );
+
+      const result = response.data?.result;
+      const item = result?.content?.[0] || result?.QuestionSet?.[0] || null;
+
+      if (!item) {
+        this.logger.warn(`No metadata returned for identifier: ${identifier}`);
+      }
+
+      return item;
+    } catch (error) {
+      this.logger.error(`Failed to fetch metadata for ${identifier}`, error);
+      return null;
+    }
+  }
+
+  private resolveDataTypeKey(primaryCategory: string): string {
+    const lower = primaryCategory.toLowerCase();
+    if (lower === 'course') return 'course';
+    if (lower.includes('question')) return 'questionSet';
+    return 'content';
+  }
 
   /**
    * Test API connectivity

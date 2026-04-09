@@ -33,6 +33,7 @@ import { CohortHandler } from './handlers/cohort.handler';
 import { CohortMemberHandler } from './handlers/cohort-member.handler';
 import { RegistrationTracker } from './entities/registration-tracker.entity';
 import { ProjectHandler } from './handlers/project.handler';
+import { ContentMetadataHandler } from './handlers/content-metadata.handler';
 import { Project } from './entities/project.entity';
 import { ProjectTask } from './entities/projectTask.entity';
 import { ProjectTaskTracking } from './entities/projectTaskTracking.entity';
@@ -102,6 +103,7 @@ import { ProjectTaskTracking } from './entities/projectTaskTracking.entity';
     CohortHandler,
     CohortMemberHandler,
     ProjectHandler,
+    ContentMetadataHandler,
     TransformService,
     // Cron job services
     ExternalApiService,

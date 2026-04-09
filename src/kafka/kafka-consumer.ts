@@ -15,6 +15,7 @@ import { EventHandler } from 'src/handlers/event.handler';
 import { CohortHandler } from 'src/handlers/cohort.handler';
 import { CohortMemberHandler } from 'src/handlers/cohort-member.handler';
 import { ProjectHandler } from 'src/handlers/project.handler';
+import { ContentMetadataHandler } from 'src/handlers/content-metadata.handler';
 
 @Injectable()
 export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
@@ -33,6 +34,7 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
     private readonly cohortHandler: CohortHandler,
     private readonly cohortMemberHandler: CohortMemberHandler,
     private readonly projectHandler: ProjectHandler,
+    private readonly contentMetadataHandler: ContentMetadataHandler,
   ) {
     const brokers = this.configService
       .get<string>('KAFKA_BROKERS', 'localhost:9092')
@@ -332,6 +334,40 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
         case 'project-update-topic':
           // Handle project task updates
           await this.handleProjectEvent('PROJECT_TASK_UPDATED', message);
+          break;
+
+        case 'dev.knowlg.content.postpublish.request':
+          this.logger.log(
+            `[content-postpublish] Received message | identifier: ${message?.edata?.identifier} | contentType: ${message?.edata?.contentType} | status: ${message?.edata?.status}`,
+          );
+          await this.contentMetadataHandler.handlePostPublishEvent(message.edata);
+          break;
+
+        case 'dev.assessment.publish.request':
+          this.logger.log(
+            `[assessment-publish] Received message | identifier: ${message?.edata?.metadata?.identifier || message?.edata?.identifier} | objectType: ${message?.edata?.metadata?.objectType}`,
+          );
+          await this.contentMetadataHandler.handleAssessmentPublishEvent(message.edata);
+          break;
+
+        case 'dev.knowlg.learning.graph.events':
+          const statusChange = message?.transactionData?.properties?.status;
+          if (statusChange) {
+            const ov = statusChange.ov;
+            const nv = statusChange.nv;
+            const objType = message?.objectType;
+            const isActionable =
+              (ov === 'Processing' && nv === 'Live') ||
+              (objType === 'QuestionSet' && nv === 'Live' && ov !== 'Live') ||
+              nv === 'Retired' ||
+              nv === 'Unlisted';
+            if (isActionable) {
+              this.logger.log(
+                `[graph-events] Actionable status change | identifier: ${message?.nodeUniqueId} | objectType: ${message?.objectType} | ${ov} -> ${nv}`,
+              );
+            }
+          }
+          await this.contentMetadataHandler.handleGraphStatusChange(message);
           break;
 
         default:

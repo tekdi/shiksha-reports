@@ -15,6 +15,9 @@ import { RegistrationTracker } from 'src/entities/registration-tracker.entity';
 import { Project } from 'src/entities/project.entity';
 import { ProjectTask } from 'src/entities/projectTask.entity';
 import { ProjectTaskTracking } from 'src/entities/projectTaskTracking.entity';
+import { Course } from 'src/entities/course.entity';
+import { QuestionSet } from 'src/entities/question-set.entity';
+import { Content } from 'src/entities/content.entity';
 
 @Injectable()
 export class DatabaseService {
@@ -45,9 +48,31 @@ export class DatabaseService {
     private projectTaskRepo: Repository<ProjectTask>,
     @InjectRepository(ProjectTaskTracking)
     private projectTaskTrackingRepo: Repository<ProjectTaskTracking>,
+    @InjectRepository(Course)
+    private courseRepo: Repository<Course>,
+    @InjectRepository(QuestionSet)
+    private questionSetRepo: Repository<QuestionSet>,
+    @InjectRepository(Content)
+    private contentRepo: Repository<Content>,
   ) {}
 
   private readonly logger = new Logger(DatabaseService.name);
+
+  /**
+   * Property names passed to TypeORM insert().orUpdate() must match Postgres column names in the
+   * ON CONFLICT ... DO UPDATE SET ... = excluded.<col> clause. If we pass JS names like childNodes
+   * while the column is child_nodes, Postgres errors: column excluded.childNodes does not exist.
+   */
+  private upsertOverwriteDbColumns(
+    repo: Repository<object>,
+    propertyKeys: string[],
+  ): string[] {
+    const meta = repo.metadata;
+    return propertyKeys.map((key) => {
+      const col = meta.columns.find((c) => c.propertyName === key);
+      return col?.databaseName ?? key;
+    });
+  }
 
   private cohortMemberColumnTypeCache: Record<string, { isArray: boolean }> | null = null;
 
@@ -1054,6 +1079,75 @@ export class DatabaseService {
     } catch (error) {
       this.logger.error(
         `[DatabaseService] Error in upsertProjectTaskTrackings: ${error.message}`,
+        error.stack,
+      );
+      throw error;
+    }
+  }
+
+  async upsertCourse(data: Partial<Course>): Promise<void> {
+    try {
+      const columns = Object.keys(data).filter((k) => k !== 'identifier');
+      const overwriteColumns = this.upsertOverwriteDbColumns(this.courseRepo, [
+        ...columns,
+        'updated_at',
+      ]);
+      await this.courseRepo
+        .createQueryBuilder()
+        .insert()
+        .into(Course)
+        .values({ ...data, updated_at: new Date() } as any)
+        .orUpdate(overwriteColumns, ['identifier'])
+        .execute();
+    } catch (error) {
+      this.logger.error(
+        `Failed to upsert course ${data.identifier}: ${error.message}`,
+        error.stack,
+      );
+      throw error;
+    }
+  }
+
+  async upsertQuestionSet(data: Partial<QuestionSet>): Promise<void> {
+    try {
+      const columns = Object.keys(data).filter((k) => k !== 'identifier');
+      const overwriteColumns = this.upsertOverwriteDbColumns(this.questionSetRepo, [
+        ...columns,
+        'updated_at',
+      ]);
+      await this.questionSetRepo
+        .createQueryBuilder()
+        .insert()
+        .into(QuestionSet)
+        .values({ ...data, updated_at: new Date() } as any)
+        .orUpdate(overwriteColumns, ['identifier'])
+        .execute();
+    } catch (error) {
+      this.logger.error(
+        `Failed to upsert question set ${data.identifier}: ${error.message}`,
+        error.stack,
+      );
+      throw error;
+    }
+  }
+
+  async upsertContent(data: Partial<Content>): Promise<void> {
+    try {
+      const columns = Object.keys(data).filter((k) => k !== 'identifier');
+      const overwriteColumns = this.upsertOverwriteDbColumns(this.contentRepo, [
+        ...columns,
+        'updated_at',
+      ]);
+      await this.contentRepo
+        .createQueryBuilder()
+        .insert()
+        .into(Content)
+        .values({ ...data, updated_at: new Date() } as any)
+        .orUpdate(overwriteColumns, ['identifier'])
+        .execute();
+    } catch (error) {
+      this.logger.error(
+        `Failed to upsert content ${data.identifier}: ${error.message}`,
         error.stack,
       );
       throw error;
