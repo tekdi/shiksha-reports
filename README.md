@@ -1,74 +1,92 @@
 <p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="200" alt="Nest Logo" /></a>
+  <img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" />
 </p>
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+<h2 align="center">Shiksha Reports Service</h2>
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://coveralls.io/github/nestjs/nest?branch=master" target="_blank"><img src="https://coveralls.io/repos/github/nestjs/nest/badge.svg?branch=master#9" alt="Coverage" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow"></a>
+<p align="center">
+A backend service built using Node.js and NestJS for handling reporting and data processing within the Shiksha ecosystem.
 </p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+
+---
 
 ## Description
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+Shiksha Reports is a NestJS-based service designed to handle reporting workflows.  
+The repository processes and manages data and may integrate with event-driven systems.
+
+---
+
+## Tech Stack
+
+- Node.js  
+- NestJS  
+- TypeScript  
+
+---
+
+## Prerequisites
+
+- Node.js (v16 or higher)  
+- npm or yarn  
+
+---
 
 ## Installation
 
-```bash
-$ npm install
-```
+    git clone https://github.com/tekdi/shiksha-reports.git
+    cd shiksha-reports
+    npm install
 
-## Running the app
+---
 
-```bash
-# development
-$ npm run start
+## Environment Configuration
 
-# watch mode
-$ npm run start:dev
+Create a `.env` file in the root directory:
 
-# production mode
-$ npm run start:prod
-```
+    PORT=3000
+    NODE_ENV=development
 
-## Test
+---
 
-```bash
-# unit tests
-$ npm run test
+## Running the Application
 
-# e2e tests
-$ npm run test:e2e
+    # development
+    npm run start:dev
 
-# test coverage
-$ npm run test:cov
-```
+    # production
+    npm run build
+    npm run start:prod
 
-## Support
+---
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+## Running Tests
 
-## Stay in touch
+    npm run test
+    npm run test:e2e
+    npm run test:cov
 
-- Author - [Kamil Myśliwiec](https://kamilmysliwiec.com)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+---
+
+## Project Structure
+
+    src/
+     ├── modules/
+     ├── services/
+     ├── controllers/
+     ├── consumers/
+
+---
+
+## Contributing
+
+1. Fork the repository  
+2. Create a new branch  
+3. Make your changes  
+4. Submit a pull request  
+
+---
 
 ## License
 
-Nest is [MIT licensed](LICENSE).
-#test
+This project is licensed under the MIT License.
