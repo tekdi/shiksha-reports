@@ -37,11 +37,19 @@ jobs:
           echo "${{ secrets.ENV_FILE_CONTENT }}" | base64 -d > manifest/configmap.yaml
 
       - name: Update Deployment Manifest
-        env:
-          IMAGE_TAG: ${{ github.event.inputs.tag }}
-          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
         run: |
+          export IMAGE_TAG=${{ github.event.inputs.tag }}
+          export ECR_REPOSITORY=${{ secrets.ECR_REPOSITORY }}
+
           envsubst < manifest/shiksha-report.yaml > manifest/shiksha-reports-service-updated.yaml
+
+          echo "===== FINAL IMAGE ====="
+          grep image manifest/shiksha-reports-service-updated.yaml
+
+          if grep -q '${IMAGE_TAG}' manifest/shiksha-reports-service-updated.yaml; then
+            echo "ERROR: IMAGE_TAG not replaced"
+            exit 1
+          fi
 
       - name: Deploy to AWS EKS
         env:
@@ -50,12 +58,19 @@ jobs:
           NAMESPACE: ${{ github.event.inputs.environment == 'prod' && 'microservices' || 'microservices-qa' }}
         run: |
           aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --region $AWS_REGION
+
           kubectl get ns $NAMESPACE >/dev/null 2>&1 || {
             echo "Namespace $NAMESPACE does not exist"
             exit 1
           }
+
           kubectl apply -f manifest/configmap.yaml -n $NAMESPACE
           kubectl apply -f manifest/shiksha-reports-service-updated.yaml -n $NAMESPACE
-          kubectl delete pod -l app=shiksha-reports -n $NAMESPACE --ignore-not-found=true
-          kubectl rollout status deployment shiksha-reports -n $NAMESPACE
+
+          kubectl rollout status deployment shiksha-reports -n $NAMESPACE --timeout=120s
+
+          echo "===== VERIFY DEPLOYED IMAGE ====="
+          kubectl get deployment shiksha-reports -n $NAMESPACE \
+            -o jsonpath='{.spec.template.spec.containers[0].image}'
+
           kubectl get pods -n $NAMESPACE -l app=shiksha-reports
