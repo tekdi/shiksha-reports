@@ -85,8 +85,8 @@ jobs:
               echo ""
               kubectl get pods -n $NAMESPACE -l app=shiksha-reports
           
-                    echo "===== VERIFY DEPLOYED IMAGE ====="
-                    kubectl get deployment shiksha-reports -n $NAMESPACE \
-                      -o jsonpath='{.spec.template.spec.containers[*].image}'
-                    echo ""
-                    kubectl get pods -n $NAMESPACE -l app=shiksha-reports
+              echo "===== VERIFY DEPLOYED IMAGE ====="
+              kubectl get deployment shiksha-reports -n $NAMESPACE \
+                -o jsonpath='{.spec.template.spec.containers[*].image}'
+              echo ""
+              kubectl get pods -n $NAMESPACE -l app=shiksha-reports
