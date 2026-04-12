@@ -10,7 +10,11 @@ spec:
   selector:
     matchLabels:
       app: shiksha-reports
-  strategy: {}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 0        # ← never spin up extra pod before killing old one
+      maxUnavailable: 1  # ← kill old pod first, then create new one
   template:
     metadata:
       creationTimestamp: null
@@ -29,7 +33,7 @@ spec:
             name: shiksha-reports-service-config
         resources: {}
       - name: cloudwatch-logs-agent
-        image: amazon/aws-for-fluent-bit:latest
+        image: amazon/aws-for-fluent-bit:2.31.12  # ← pin this, stop using latest
         imagePullPolicy: Always
         env:
           - name: REGION
@@ -39,7 +43,6 @@ spec:
         resources: {}
       restartPolicy: Always
 status: {}
-
 ---
 apiVersion: v1
 kind: Service
