@@ -45,13 +45,16 @@ jobs:
 
       - name: Deploy to AWS EKS
         env:
-          EKS_CLUSTER_NAME: ${{ secrets.EKS_CLUSTER_NAME }}
           AWS_REGION: ${{ secrets.AWS_REGION }}
+          EKS_CLUSTER_NAME: ${{ github.event.inputs.environment == 'prod' && secrets.EKS_CLUSTER_NAME_PROD || secrets.EKS_CLUSTER_NAME_QA }}
           NAMESPACE: ${{ github.event.inputs.environment == 'prod' && 'microservices' || 'microservices-qa' }}
         run: |
           aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --region $AWS_REGION
-          kubectl get ns $NAMESPACE >/dev/null 2>&1 || kubectl create ns $NAMESPACE
+          kubectl get ns $NAMESPACE >/dev/null 2>&1 || {
+            echo "Namespace $NAMESPACE does not exist"
+            exit 1
+          }
           kubectl apply -f manifest/configmap.yaml -n $NAMESPACE
           kubectl apply -f manifest/shiksha-reports-service-updated.yaml -n $NAMESPACE
-          kubectl delete pod -l app=shiksha-reports -n $NAMESPACE
+          kubectl delete pod -l app=shiksha-reports -n $NAMESPACE --ignore-not-found=true
           kubectl get pods -n $NAMESPACE -l app=shiksha-reports
