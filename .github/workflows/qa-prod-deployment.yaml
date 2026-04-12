@@ -50,32 +50,43 @@ jobs:
             exit 1
           fi
 
-      - name: Deploy to AWS EKS
-        env:
-          AWS_REGION: ${{ secrets.AWS_REGION }}
-          EKS_CLUSTER_NAME: ${{ github.event.inputs.environment == 'prod' && secrets.EKS_CLUSTER_NAME_PROD || secrets.EKS_CLUSTER_NAME_QA }}
-          NAMESPACE: ${{ github.event.inputs.environment == 'prod' && 'microservices' || 'microservices-qa' }}
-        run: |
-          aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --region $AWS_REGION
-
-          kubectl get ns $NAMESPACE >/dev/null 2>&1 || {
-            echo "Namespace $NAMESPACE does not exist"
-            exit 1
-          }
-
-          kubectl apply -f manifest/configmap.yaml -n $NAMESPACE
-          kubectl apply -f manifest/shiksha-reports-service-updated.yaml -n $NAMESPACE
-
-          kubectl rollout status deployment shiksha-reports -n $NAMESPACE --timeout=180s || {
-            echo "===== ROLLOUT FAILED - DEBUGGING ====="
-            kubectl get pods -n $NAMESPACE -l app=shiksha-reports
-            kubectl describe pods -n $NAMESPACE -l app=shiksha-reports
-            kubectl get events -n $NAMESPACE --sort-by=.lastTimestamp | tail -20
-            exit 1
-          }
-
-          echo "===== VERIFY DEPLOYED IMAGE ====="
-          kubectl get deployment shiksha-reports -n $NAMESPACE \
-            -o jsonpath='{.spec.template.spec.containers[*].image}'
-          echo ""
-          kubectl get pods -n $NAMESPACE -l app=shiksha-reports
+          - name: Deploy to AWS EKS
+            env:
+              AWS_REGION: ${{ secrets.AWS_REGION }}
+              EKS_CLUSTER_NAME: ${{ github.event.inputs.environment == 'prod' && secrets.EKS_CLUSTER_NAME_PROD || secrets.EKS_CLUSTER_NAME_QA }}
+              NAMESPACE: ${{ github.event.inputs.environment == 'prod' && 'microservices' || 'microservices-qa' }}
+            run: |
+              aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --region $AWS_REGION
+          
+              kubectl get ns $NAMESPACE >/dev/null 2>&1 || { echo "Namespace $NAMESPACE does not exist"; exit 1; }
+          
+              kubectl apply -f manifest/configmap.yaml -n $NAMESPACE
+              
+              # Scale to 0 first to avoid surge scheduling conflict
+              kubectl scale deployment shiksha-reports --replicas=0 -n $NAMESPACE
+              kubectl wait --for=delete pod -l app=shiksha-reports -n $NAMESPACE --timeout=60s || true
+          
+              kubectl apply -f manifest/shiksha-reports-service-updated.yaml -n $NAMESPACE
+          
+              # Scale back up
+              kubectl scale deployment shiksha-reports --replicas=1 -n $NAMESPACE
+          
+              kubectl rollout status deployment shiksha-reports -n $NAMESPACE --timeout=180s || {
+                echo "===== ROLLOUT FAILED - DEBUGGING ====="
+                kubectl get pods -n $NAMESPACE -l app=shiksha-reports
+                kubectl describe pods -n $NAMESPACE -l app=shiksha-reports
+                kubectl get events -n $NAMESPACE --sort-by=.lastTimestamp | tail -20
+                exit 1
+              }
+          
+              echo "===== VERIFY DEPLOYED IMAGE ====="
+              kubectl get deployment shiksha-reports -n $NAMESPACE \
+                -o jsonpath='{.spec.template.spec.containers[*].image}'
+              echo ""
+              kubectl get pods -n $NAMESPACE -l app=shiksha-reports
+          
+                    echo "===== VERIFY DEPLOYED IMAGE ====="
+                    kubectl get deployment shiksha-reports -n $NAMESPACE \
+                      -o jsonpath='{.spec.template.spec.containers[*].image}'
+                    echo ""
+                    kubectl get pods -n $NAMESPACE -l app=shiksha-reports
