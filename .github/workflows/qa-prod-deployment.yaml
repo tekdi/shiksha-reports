@@ -57,4 +57,5 @@ jobs:
           kubectl apply -f manifest/configmap.yaml -n $NAMESPACE
           kubectl apply -f manifest/shiksha-reports-service-updated.yaml -n $NAMESPACE
           kubectl delete pod -l app=shiksha-reports -n $NAMESPACE --ignore-not-found=true
+          kubectl rollout status deployment shiksha-reports -n $NAMESPACE
           kubectl get pods -n $NAMESPACE -l app=shiksha-reports
