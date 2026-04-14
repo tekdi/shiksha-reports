@@ -27,7 +27,7 @@ The repository processes and manages data and may integrate with event-driven sy
 
 ## Prerequisites
 
-- Node.js (v16 or higher)  
+- Node.js (v18 or higher recommended)
 - npm or yarn  
 
 ---
@@ -46,6 +46,8 @@ Create a `.env` file in the root directory:
 
     PORT=3000
     NODE_ENV=development
+
+Note: Additional environment variables may be required depending on the services used (such as databases, APIs, or messaging systems). Refer to the codebase for complete configuration details.
 
 ---
 
