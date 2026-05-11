@@ -37,6 +37,9 @@ import { ContentMetadataHandler } from './handlers/content-metadata.handler';
 import { Project } from './entities/project.entity';
 import { ProjectTask } from './entities/projectTask.entity';
 import { ProjectTaskTracking } from './entities/projectTaskTracking.entity';
+import { SurveyHandler } from './handlers/survey.handler';
+import { SurveyList } from './entities/survey-list.entity';
+import { SurveyTracker } from './entities/survey-tracker.entity';
 
 @Module({
   imports: [
@@ -86,6 +89,8 @@ import { ProjectTaskTracking } from './entities/projectTaskTracking.entity';
       Project, // Add Project entity for course planner
       ProjectTask, // Add ProjectTask entity for course planner
       ProjectTaskTracking, // Add ProjectTaskTracking entity for tracking completed tasks
+      SurveyList,
+      SurveyTracker,
     ]),
   ],
   controllers: [
@@ -104,6 +109,7 @@ import { ProjectTaskTracking } from './entities/projectTaskTracking.entity';
     CohortMemberHandler,
     ProjectHandler,
     ContentMetadataHandler,
+    SurveyHandler,
     TransformService,
     // Cron job services
     ExternalApiService,

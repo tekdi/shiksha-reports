@@ -16,6 +16,7 @@ import { CohortHandler } from 'src/handlers/cohort.handler';
 import { CohortMemberHandler } from 'src/handlers/cohort-member.handler';
 import { ProjectHandler } from 'src/handlers/project.handler';
 import { ContentMetadataHandler } from 'src/handlers/content-metadata.handler';
+import { SurveyHandler } from 'src/handlers/survey.handler';
 
 @Injectable()
 export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
@@ -35,6 +36,7 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
     private readonly cohortMemberHandler: CohortMemberHandler,
     private readonly projectHandler: ProjectHandler,
     private readonly contentMetadataHandler: ContentMetadataHandler,
+    private readonly surveyHandler: SurveyHandler,
   ) {
     const brokers = this.configService
       .get<string>('KAFKA_BROKERS', 'localhost:9092')
@@ -141,6 +143,12 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
   }
 
   private async processEvent(topic: string, event: any) {
+    // Survey topic: pass full envelope so handlers can read top-level timestamp
+    if (topic === 'survey-topic') {
+      await this.handleSurveyEvent(event.eventType, event);
+      return;
+    }
+
     // Check if message has standard wrapper format (eventType + data)
     if (event.eventType && event.data) {
       // Standard wrapped format
@@ -380,6 +388,42 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
         `Error processing direct message from topic ${topic}: ${error.message}`,
         error.stack,
       );
+    }
+  }
+
+  private async handleSurveyEvent(eventType: string, event: any) {
+    if (!eventType) {
+      this.logger.warn('Received survey-topic message without eventType — skipping');
+      return;
+    }
+
+    switch (eventType) {
+      case 'SURVEY_CREATED':
+        return this.surveyHandler.handleSurveyCreated(event);
+
+      case 'SURVEY_UPDATED':
+        return this.surveyHandler.handleSurveyUpdated(event);
+
+      case 'SURVEY_PUBLISHED':
+        return this.surveyHandler.handleSurveyPublished(event);
+
+      case 'SURVEY_CLOSED':
+        return this.surveyHandler.handleSurveyClosed(event);
+
+      case 'SURVEY_DELETED':
+        return this.surveyHandler.handleSurveyDeleted(event);
+
+      case 'RESPONSE_STARTED':
+        return this.surveyHandler.handleResponseStarted(event);
+
+      case 'RESPONSE_UPDATED':
+        return this.surveyHandler.handleResponseUpdated(event);
+
+      case 'RESPONSE_SUBMITTED':
+        return this.surveyHandler.handleResponseSubmitted(event);
+
+      default:
+        this.logger.warn(`Unhandled survey eventType: ${eventType}`);
     }
   }
 

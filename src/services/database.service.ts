@@ -18,6 +18,8 @@ import { ProjectTaskTracking } from 'src/entities/projectTaskTracking.entity';
 import { Course } from 'src/entities/course.entity';
 import { QuestionSet } from 'src/entities/question-set.entity';
 import { Content } from 'src/entities/content.entity';
+import { SurveyList } from 'src/entities/survey-list.entity';
+import { SurveyTracker } from 'src/entities/survey-tracker.entity';
 
 @Injectable()
 export class DatabaseService {
@@ -54,6 +56,10 @@ export class DatabaseService {
     private questionSetRepo: Repository<QuestionSet>,
     @InjectRepository(Content)
     private contentRepo: Repository<Content>,
+    @InjectRepository(SurveyList)
+    private surveyListRepo: Repository<SurveyList>,
+    @InjectRepository(SurveyTracker)
+    private surveyTrackerRepo: Repository<SurveyTracker>,
   ) {}
 
   private readonly logger = new Logger(DatabaseService.name);
@@ -1150,6 +1156,139 @@ export class DatabaseService {
         `Failed to upsert content ${data.identifier}: ${error.message}`,
         error.stack,
       );
+      throw error;
+    }
+  }
+
+  // ─── SurveyList ─────────────────────────────────────────────────────────────
+
+  async upsertSurveyList(data: Partial<SurveyList>) {
+    try {
+      await this.surveyListRepo
+        .createQueryBuilder()
+        .insert()
+        .into(SurveyList)
+        .values(data as any)
+        .orUpdate(
+          ['SurveyName', 'TargetRole', 'Context', 'Type', 'IsActive', 'SurveyForm'],
+          ['SurveyID'],
+        )
+        .execute();
+    } catch (error) {
+      this.logger.error(`upsertSurveyList failed for ${data.surveyId}: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  async updateSurveyListMetadata(data: {
+    surveyId: string;
+    surveyName: string;
+    targetRole: string[];
+    context: string;
+    type: string;
+    surveyForm: any[];
+  }) {
+    try {
+      await this.surveyListRepo.update(
+        { surveyId: data.surveyId },
+        {
+          surveyName: data.surveyName,
+          targetRole: data.targetRole,
+          context: data.context,
+          type: data.type,
+          surveyForm: data.surveyForm,
+        },
+      );
+    } catch (error) {
+      this.logger.error(`updateSurveyListMetadata failed for ${data.surveyId}: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  async updateSurveyListActiveStatus(surveyId: string, isActive: boolean) {
+    try {
+      await this.surveyListRepo.update({ surveyId }, { isActive });
+    } catch (error) {
+      this.logger.error(`updateSurveyListActiveStatus failed for ${surveyId}: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  async deleteSurveyList(surveyId: string) {
+    try {
+      await this.surveyListRepo.delete({ surveyId });
+    } catch (error) {
+      this.logger.error(`deleteSurveyList failed for ${surveyId}: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  // ─── SurveyTracker ───────────────────────────────────────────────────────────
+
+  async insertSurveyTracker(data: Partial<SurveyTracker>) {
+    try {
+      await this.surveyTrackerRepo
+        .createQueryBuilder()
+        .insert()
+        .into(SurveyTracker)
+        .values(data as any)
+        .orIgnore()
+        .execute();
+    } catch (error) {
+      this.logger.error(`insertSurveyTracker failed for ${data.surveyTrackingId}: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  async updateSurveyTrackerProgress(data: {
+    surveyTrackingId: string;
+    context: string;
+    contextId: string;
+    surveySummary: Record<string, any> | null;
+    surveyResponseStatusIndividual: string;
+    updatedAt: Date;
+  }) {
+    try {
+      const updatePayload: Partial<SurveyTracker> = {
+        context: data.context,
+        contextId: data.contextId,
+        surveyResponseStatusIndividual: data.surveyResponseStatusIndividual,
+        updatedAt: data.updatedAt,
+      };
+      if (data.surveySummary && Object.keys(data.surveySummary).length > 0) {
+        updatePayload.surveySummary = data.surveySummary;
+      }
+      await this.surveyTrackerRepo.update(
+        { surveyTrackingId: data.surveyTrackingId },
+        updatePayload,
+      );
+    } catch (error) {
+      this.logger.error(`updateSurveyTrackerProgress failed for ${data.surveyTrackingId}: ${error.message}`, error.stack);
+      throw error;
+    }
+  }
+
+  async updateSurveyTrackerSubmitted(data: {
+    surveyTrackingId: string;
+    context: string;
+    contextId: string;
+    surveySummary: Record<string, any>;
+    surveyResponseStatusIndividual: string;
+    updatedAt: Date;
+  }) {
+    try {
+      await this.surveyTrackerRepo.update(
+        { surveyTrackingId: data.surveyTrackingId },
+        {
+          context: data.context,
+          contextId: data.contextId,
+          surveySummary: data.surveySummary,
+          surveyResponseStatusIndividual: data.surveyResponseStatusIndividual,
+          updatedAt: data.updatedAt,
+        },
+      );
+    } catch (error) {
+      this.logger.error(`updateSurveyTrackerSubmitted failed for ${data.surveyTrackingId}: ${error.message}`, error.stack);
       throw error;
     }
   }
