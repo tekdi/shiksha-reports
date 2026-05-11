@@ -99,6 +99,30 @@ export class TransformService {
         return null;
       };
 
+      // Helper to extract ALL selected values from a custom field by label (comma-separated ids)
+      const extractAllCustomFieldValues = (label: string): string | null => {
+        if (!data.customFields || !Array.isArray(data.customFields)) {
+          return null;
+        }
+        const field = data.customFields.find((f: any) => f?.label === label);
+        if (
+          !field ||
+          !field.selectedValues ||
+          !Array.isArray(field.selectedValues) ||
+          field.selectedValues.length === 0
+        ) {
+          return null;
+        }
+        const ids = field.selectedValues
+          .map((v: any) => {
+            if (typeof v === 'string') return v;
+            if (typeof v === 'object' && v !== null) return v.id ?? null;
+            return null;
+          })
+          .filter((v: string | null) => v !== null);
+        return ids.length > 0 ? ids.join(',') : null;
+      };
+
       // Helper function to convert yes/no to boolean
       const convertToBoolean = (value: string | null) => {
         if (value === null) return null;
@@ -133,6 +157,7 @@ export class TransformService {
         districtId: extractCustomField('DISTRICT'),
         blockId: extractCustomField('BLOCK'),
         villageId: extractCustomField('VILLAGE'),
+        userWorkingVillage: extractAllCustomFieldValues('WORKING_VILLAGE'),
 
         // Additional custom fields mapped to entity properties
         userFatherName: extractCustomField('FATHER_NAME'),

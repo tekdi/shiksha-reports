@@ -51,10 +51,16 @@ async function migrateCohortMembers() {
 
 async function upsertCohortMember(destClient, row) {
   try {
-    const insert = `
+    const upsert = `
       INSERT INTO public."CohortMember" (
         "CohortMemberID", "CohortID", "UserID", "MemberStatus", "AcademicYearID","CreatedAt","UpdatedAt"
-      ) VALUES ($1, $2, $3, $4, $5,$6,$7)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7)
+      ON CONFLICT ("CohortMemberID") DO UPDATE SET
+        "CohortID" = $2,
+        "UserID" = $3,
+        "MemberStatus" = $4,
+        "AcademicYearID" = $5,
+        "UpdatedAt" = $7
     `;
 
     const values = [
@@ -67,7 +73,7 @@ async function upsertCohortMember(destClient, row) {
       row.updatedAt
     ];
 
-    await destClient.query(insert, values);
+    await destClient.query(upsert, values);
   } catch (e) {
     console.error(`[COHORT MEMBERS] Error upserting CohortMemberID=${row.cohortMembershipId}:`, e.message);
   }
