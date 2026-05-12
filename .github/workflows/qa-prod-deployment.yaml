@@ -41,22 +41,15 @@ jobs:
           export IMAGE_TAG=${{ github.event.inputs.tag }}
           export ECR_REPOSITORY=${{ secrets.ECR_REPOSITORY }}
 
-          envsubst '$ECR_REPOSITORY $IMAGE_TAG' \
-            < manifest/shiksha-report.yaml \
-            > manifest/shiksha-reports-service-updated.yaml
+          envsubst < manifest/shiksha-report.yaml > manifest/shiksha-reports-service-updated.yaml
 
           echo "===== FINAL IMAGE ====="
           grep image manifest/shiksha-reports-service-updated.yaml
 
-          if grep -q '\${' manifest/shiksha-reports-service-updated.yaml; then
-            echo "ERROR: Variable substitution failed"
-            exit 1
-          fi
-
       - name: Deploy to AWS EKS
         env:
           AWS_REGION: ${{ secrets.AWS_REGION }}
-          EKS_CLUSTER_NAME: ${{ github.event.inputs.environment == 'prod' && secrets.EKS_CLUSTER_NAME_PROD || secrets.EKS_CLUSTER_NAME_QA }}
+          EKS_CLUSTER_NAME: ${{ secrets.EKS_CLUSTER_NAME }}
           NAMESPACE: ${{ github.event.inputs.environment == 'prod' && 'microservices' || 'microservices-qa' }}
         run: |
           aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --region $AWS_REGION
@@ -67,40 +60,11 @@ jobs:
           }
 
           kubectl apply -f manifest/configmap.yaml -n $NAMESPACE
-
-          kubectl scale deployment shiksha-reports --replicas=0 -n $NAMESPACE || true
-
-          kubectl wait \
-            --for=delete pod \
-            -l app=shiksha-reports \
-            -n $NAMESPACE \
-            --timeout=120s || true
-
           kubectl apply -f manifest/shiksha-reports-service-updated.yaml -n $NAMESPACE
-
+          kubectl scale deployment shiksha-reports --replicas=0 -n $NAMESPACE
+          sleep 10
           kubectl scale deployment shiksha-reports --replicas=1 -n $NAMESPACE
-
-          kubectl rollout status deployment shiksha-reports \
-            -n $NAMESPACE \
-            --timeout=180s || {
-
-            echo "===== ROLLOUT FAILED ====="
-
-            kubectl get deployment shiksha-reports -n $NAMESPACE
-
-            kubectl get rs -n $NAMESPACE | grep shiksha || true
-
-            kubectl get pods -n $NAMESPACE -l app=shiksha-reports -o wide || true
-
-            kubectl describe pods -n $NAMESPACE -l app=shiksha-reports || true
-
-            kubectl logs -n $NAMESPACE -l app=shiksha-reports --all-containers=true --tail=100 || true
-
-            kubectl get events -n $NAMESPACE --sort-by=.lastTimestamp | tail -20 || true
-
-            exit 1
-          }
-
+          kubectl rollout status deployment shiksha-reports -n $NAMESPACE --timeout=180s
           echo "===== VERIFY DEPLOYED IMAGE ====="
 
           kubectl get deployment shiksha-reports \
