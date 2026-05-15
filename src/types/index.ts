@@ -23,7 +23,8 @@ export interface CohortData {
   cohortMemberStatus?: string;
   academicYearId?: string;
   batchId?: string;
-  cohortMemberId?: string; // Added to resolve TypeScript error
+  cohortMemberId?: string;// Added to resolve TypeScript error
+  statusReason?: string ;
 }
 
 export interface TenantRole {
