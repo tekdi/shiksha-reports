@@ -14,8 +14,8 @@ export class CohortMember {
   @Column({ type: 'varchar', length: 50, nullable: false })
   MemberStatus: string;
 
-    @Column({ type: 'varchar', length: 50, nullable: false })
-  statusReason: string;
+  @Column({ type: 'varchar', length: 50, nullable: true })
+  StatusReason: string;
 
   @Column({ type: 'uuid', nullable: false })
   AcademicYearID: string;
