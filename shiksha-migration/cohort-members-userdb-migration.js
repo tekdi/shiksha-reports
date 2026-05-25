@@ -7,13 +7,13 @@ console.log('=== Loading cohort-members-academicYear-migration.js ===');
 async function migrateCohortMembersAcademicYear() {
   console.log('=== STARTING COHORT MEMBERS ACADEMIC YEAR MIGRATION ===');
 
-  const Client = new Client(dbConfig.source);
+  const dbclient = new Client(dbConfig.source);
 
   try {
     /**
      * CONNECT TO DATABASE
      */
-    await Client.connect();
+    await dbclient.connect();
 
     console.log(
       '[COHORT_MEMBERS_ACADEMIC_YEAR] Connected to database'

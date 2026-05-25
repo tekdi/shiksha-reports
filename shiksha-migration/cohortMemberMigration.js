@@ -36,10 +36,6 @@ async function migrateCohortMembers() {
     console.log(`[COHORT MEMBERS] Found ${res.rows.length} cohort member records to migrate.`);
     for (const row of res.rows) {
       await upsertCohortMember(destClient, row);
-      // break;post
-      // Uncomment to test single record
-      // console.log('[COHORT MEMBERS] 🛑 Stopping after one record for testing');
-      // break;
     }
 
     console.log('[COHORT MEMBERS] Migration completed successfully');

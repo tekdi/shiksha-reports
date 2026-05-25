@@ -7,11 +7,11 @@ console.log('=== Loading cohort-academic-year-migration.js ===');
 async function migrateCohortAcademicYear() {
   console.log('=== STARTING COHORT ACADEMIC YEAR MIGRATION ===');
 
-  const Client = new Client(dbConfig.source);
+  const dbclient = new Client(dbConfig.source);
 
   try {
  
-    await Client.connect();
+    await dbclient.connect();
 
     console.log(
       '[COHORT_ACADEMIC_YEAR] Connected to destination database'
@@ -20,7 +20,7 @@ async function migrateCohortAcademicYear() {
     const tenantId = 'ef99949b-7f3a-4a5f-806a-e67e683e38f3';
     const adminUserId = '8058c0e1-8c78-4483-8add-495bbe774823';
     const apiBaseUrl = 'http://localhost:3000';
-    const bearerToken = process.env.BEARER_TOKEN
+    const bearerToken = process.env.BEARER_TOKEN;
     /**
      * FETCH ACTIVE ACADEMIC YEAR FROM DB
      */
