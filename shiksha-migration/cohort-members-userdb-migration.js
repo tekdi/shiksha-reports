@@ -7,13 +7,13 @@ console.log('=== Loading cohort-members-academicYear-migration.js ===');
 async function migrateCohortMembersAcademicYear() {
   console.log('=== STARTING COHORT MEMBERS ACADEMIC YEAR MIGRATION ===');
 
-  const destClient = new Client(dbConfig.source);
+  const Client = new Client(dbConfig.source);
 
   try {
     /**
      * CONNECT TO DATABASE
      */
-    await destClient.connect();
+    await Client.connect();
 
     console.log(
       '[COHORT_MEMBERS_ACADEMIC_YEAR] Connected to database'
@@ -22,9 +22,9 @@ async function migrateCohortMembersAcademicYear() {
     const tenantId = 'ef99949b-7f3a-4a5f-806a-e67e683e38f3';
     const apiBaseUrl = 'http://localhost:3000';
     const bearerToken = process.env.BEARER_TOKEN;
-       /**
-     * FETCH ACTIVE ACADEMIC YEAR FROM DB
-     */
+    /**
+  * FETCH ACTIVE ACADEMIC YEAR FROM DB
+  */
     const activeYearQuery = `
       SELECT id
       FROM public."AcademicYears"
@@ -116,7 +116,7 @@ async function migrateCohortMembersAcademicYear() {
           continue;
         }
 
-        
+
         await axios.post(
           `${apiBaseUrl}/user/v1/cohortmember/create`,
           {
