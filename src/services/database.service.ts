@@ -322,7 +322,7 @@ export class DatabaseService {
         const updatedMember = await this.cohortMemberRepo.findOne({
           where: {
             CohortMemberID: existingMember.CohortMemberID,
-          },
+          }, 
         });
 
         return { action: 'updated', data: updatedMember };
