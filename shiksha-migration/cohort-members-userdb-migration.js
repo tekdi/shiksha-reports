@@ -33,7 +33,7 @@ async function migrateCohortMembersAcademicYear() {
       LIMIT 1
     `;
 
-    const activeYearRes = await destClient.query(
+    const activeYearRes = await dbclient.query(
       activeYearQuery,
       [tenantId]
     );
@@ -63,7 +63,7 @@ async function migrateCohortMembersAcademicYear() {
       GROUP BY cm."userId", cm."cohortId", cay."cohortAcademicYearId"
     `;
 
-    const membersRes = await destClient.query(
+    const membersRes = await dbclient.query(
       membersQuery,
       [tenantId, academicYearId]
     );
@@ -94,7 +94,7 @@ async function migrateCohortMembersAcademicYear() {
           LIMIT 1
         `;
 
-        const existingRes = await destClient.query(
+        const existingRes = await dbclient.query(
           existingQuery,
           [
             member.userId,
@@ -175,7 +175,7 @@ async function migrateCohortMembersAcademicYear() {
 
   } finally {
 
-    await destClient.end();
+    await dbclient.end();
 
     console.log(
       '[COHORT_MEMBERS_ACADEMIC_YEAR] Disconnected from database'
