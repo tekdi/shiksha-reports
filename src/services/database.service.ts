@@ -20,6 +20,7 @@ import { QuestionSet } from 'src/entities/question-set.entity';
 import { Content } from 'src/entities/content.entity';
 import { SurveyList } from 'src/entities/survey-list.entity';
 import { SurveyTracker } from 'src/entities/survey-tracker.entity';
+import { CohortAcademicYear } from 'src/entities/cohort-academic-year.entity';
 
 @Injectable()
 export class DatabaseService {
@@ -60,7 +61,9 @@ export class DatabaseService {
     private surveyListRepo: Repository<SurveyList>,
     @InjectRepository(SurveyTracker)
     private surveyTrackerRepo: Repository<SurveyTracker>,
-  ) {}
+    @InjectRepository(CohortAcademicYear)
+    private cohortAcademicYearRepo: Repository<CohortAcademicYear>,
+  ) { }
 
   private readonly logger = new Logger(DatabaseService.name);
 
@@ -225,7 +228,7 @@ export class DatabaseService {
 
     entries.forEach(([column, value], idx) => {
       const isArrayColumn = colTypes[column]?.isArray ?? false;
-      
+
       if (isArrayColumn) {
         // For array columns, wrap the value in PostgreSQL array literal format
         // Store the original value as a single-element array to preserve it exactly as received
@@ -276,11 +279,12 @@ export class DatabaseService {
 
   async upsertCohortMemberData(cohortMemberData: Partial<CohortMember>) {
     try {
-      // Check if a record with the same UserId and CohortID already exists
+      // Check if a record with the same UserId, CohortID, and AcademicYearID already exists
       const existingMember = await this.cohortMemberRepo.findOne({
         where: {
           UserID: cohortMemberData.UserID,
           CohortID: cohortMemberData.CohortID,
+          AcademicYearID: cohortMemberData.AcademicYearID,
         },
       });
 
@@ -290,45 +294,56 @@ export class DatabaseService {
           existingMember.UserID === cohortMemberData.UserID &&
           existingMember.CohortID === cohortMemberData.CohortID &&
           existingMember.MemberStatus === cohortMemberData.MemberStatus &&
-          existingMember.AcademicYearID === cohortMemberData.AcademicYearID;
+          existingMember.AcademicYearID === cohortMemberData.AcademicYearID &&
+          existingMember.StatusReason === cohortMemberData.StatusReason;
 
         if (allFieldsSame) {
           console.log(
-            `[DatabaseService] User ${cohortMemberData.UserID} is already assigned to cohort ${cohortMemberData.CohortID} with the same status. No changes needed.`,
+            `[DatabaseService] User ${cohortMemberData.UserID} is already assigned to cohort ${cohortMemberData.CohortID} with the same status and academic year. No changes needed.`,
           );
           return { action: 'no_change', data: existingMember };
         }
 
-        // If UserId and CohortID are same but other fields are different, update
+        // If same UserId, CohortID, and AcademicYearID but other fields are different, update
         console.log(
-          `[DatabaseService] Updating cohort member status for user ${cohortMemberData.UserID} in cohort ${cohortMemberData.CohortID}`,
+          `[DatabaseService] Updating cohort member status for user ${cohortMemberData.UserID} in cohort ${cohortMemberData.CohortID} and academic year ${cohortMemberData.AcademicYearID}`,
         );
         await this.cohortMemberRepo.update(
           {
-            UserID: cohortMemberData.UserID,
-            CohortID: cohortMemberData.CohortID,
+            CohortMemberID: existingMember.CohortMemberID,
           },
           {
             MemberStatus: cohortMemberData.MemberStatus,
-            AcademicYearID: cohortMemberData.AcademicYearID,
+            StatusReason: cohortMemberData.StatusReason,
           },
         );
 
         // Return the updated record
         const updatedMember = await this.cohortMemberRepo.findOne({
           where: {
-            UserID: cohortMemberData.UserID,
-            CohortID: cohortMemberData.CohortID,
+            CohortMemberID: existingMember.CohortMemberID,
           },
         });
 
         return { action: 'updated', data: updatedMember };
       } else {
-        // If no existing record, insert new one
+        // If no existing record with this academic year, insert new one (adding cohortID and userID with that new academic year)
         console.log(
-          `[DatabaseService] Creating new cohort member entry for user ${cohortMemberData.UserID} in cohort ${cohortMemberData.CohortID}`,
+          `[DatabaseService] Creating new cohort member entry for user ${cohortMemberData.UserID} in cohort ${cohortMemberData.CohortID} with academic year ${cohortMemberData.AcademicYearID}`,
         );
-        const newMember = await this.cohortMemberRepo.save(cohortMemberData);
+
+        // Ensure we don't accidentally update another record if a CohortMemberID was passed in cohortMemberData that already exists
+        const dataToSave = { ...cohortMemberData };
+        if (dataToSave.CohortMemberID) {
+          const idExists = await this.cohortMemberRepo.findOne({
+            where: { CohortMemberID: dataToSave.CohortMemberID },
+          });
+          if (idExists) {
+            delete dataToSave.CohortMemberID;
+          }
+        }
+
+        const newMember = await this.cohortMemberRepo.save(dataToSave);
         return { action: 'created', data: newMember };
       }
     } catch (error) {
@@ -349,6 +364,10 @@ export class DatabaseService {
     return this.cohortNewRepo.findOne({
       where: { cohortId },
     });
+  }
+
+  async saveCohortAcademicYearData(data: any) {
+    return this.cohortAcademicYearRepo.save(data);
   }
 
   async upsertAttendanceTracker(
@@ -619,7 +638,7 @@ export class DatabaseService {
           // Only update if status is different or time spent has changed
           if (
             existingTracker.contentTrackingStatus !==
-              contentTrackerData.contentTrackingStatus ||
+            contentTrackerData.contentTrackingStatus ||
             existingTracker.timeSpent !== contentTrackerData.timeSpent
           ) {
             const updateResult = await this.contentTrackerRepo.update(
@@ -674,7 +693,7 @@ export class DatabaseService {
         // If roleId is not provided, update all records matching userId and tenantId
         // First, find all existing records
         const existingRecords = await this.registrationTrackerRepo.find({
-          where: { 
+          where: {
             userId: registrationData.userId,
             tenantId: registrationData.tenantId
           }
@@ -687,7 +706,7 @@ export class DatabaseService {
             tenantRegnDate: registrationData.tenantRegnDate,
             reason: registrationData.reason,
           };
-          
+
           // Only update platformRegnDate if provided
           if (registrationData.platformRegnDate) {
             updateData.platformRegnDate = registrationData.platformRegnDate;
@@ -695,7 +714,7 @@ export class DatabaseService {
 
           // Update all matching records
           await this.registrationTrackerRepo.update(
-            { 
+            {
               userId: registrationData.userId,
               tenantId: registrationData.tenantId
             },
@@ -712,7 +731,7 @@ export class DatabaseService {
       // Fallback to the original method if the database doesn't support UPSERT
       if (registrationData.roleId) {
         const existingRecord = await this.registrationTrackerRepo.findOne({
-          where: { 
+          where: {
             userId: registrationData.userId,
             tenantId: registrationData.tenantId,
             roleId: registrationData.roleId
@@ -721,7 +740,7 @@ export class DatabaseService {
 
         if (existingRecord) {
           return this.registrationTrackerRepo.update(
-            { 
+            {
               userId: registrationData.userId,
               tenantId: registrationData.tenantId,
               roleId: registrationData.roleId
@@ -734,7 +753,7 @@ export class DatabaseService {
       } else {
         // Fallback for updates without roleId
         const existingRecords = await this.registrationTrackerRepo.find({
-          where: { 
+          where: {
             userId: registrationData.userId,
             tenantId: registrationData.tenantId
           }
@@ -746,13 +765,13 @@ export class DatabaseService {
             tenantRegnDate: registrationData.tenantRegnDate,
             reason: registrationData.reason,
           };
-          
+
           if (registrationData.platformRegnDate) {
             updateData.platformRegnDate = registrationData.platformRegnDate;
           }
 
           return this.registrationTrackerRepo.update(
-            { 
+            {
               userId: registrationData.userId,
               tenantId: registrationData.tenantId
             },
@@ -794,21 +813,21 @@ export class DatabaseService {
 
     // Build update payload with all fields
     const updatePayload: Partial<CourseTracker> = {};
-    
+
     if (update.status !== undefined) {
       updatePayload.courseTrackingStatus = update.status;
     }
-    
+
     if (update.createdOn !== undefined && update.createdOn !== null) {
       updatePayload.courseTrackingStartDate = new Date(update.createdOn);
     }
-    
+
     if (update.completedOn !== undefined) {
       updatePayload.courseTrackingEndDate = update.completedOn
         ? new Date(update.completedOn)
         : null as any;
     }
-    
+
     if (update.certificateId !== undefined) {
       updatePayload.certificateId = update.certificateId || null;
     }
@@ -819,12 +838,12 @@ export class DatabaseService {
   async updateUserLastLogin(data: { userId: string; lastLogin?: string | Date }) {
     try {
       const { userId, lastLogin } = data;
-      
+
       // Convert lastLogin to Date if it's a string
-      const lastLoginDate = lastLogin 
+      const lastLoginDate = lastLogin
         ? (typeof lastLogin === 'string' ? new Date(lastLogin) : lastLogin)
         : new Date(); // Default to current timestamp if not provided
-      
+
       // Update the user's last login timestamp
       return this.userRepo.update(
         { userId },

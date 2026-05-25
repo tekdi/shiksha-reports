@@ -5,7 +5,60 @@ import { DatabaseService } from '../services/database.service';
 export class CohortMemberHandler {
   private readonly logger = new Logger(CohortMemberHandler.name);
 
-  constructor(private readonly dbService: DatabaseService) {}
+  constructor(private readonly dbService: DatabaseService) { }
+
+  async handleCohortMemberCreated(data: any) {
+    try {
+      this.logger.debug(
+        `Incoming cohort member created event: ${JSON.stringify(data)}`,
+      );
+
+      const cohortMembershipId: string | undefined = data?.cohortMembershipId;
+      const userId: string | undefined = data?.userId || data?.UserID;
+      const cohortId: string | undefined = data?.cohortId || data?.CohortID;
+      const status: string | undefined = data?.status || data?.MemberStatus || 'active';
+      const academicYearId: string | undefined =
+        data?.academicyearId;
+      const statusReason: string | undefined =
+        data?.statusReason || data?.StatusReason;
+
+      if (!userId || !cohortId) {
+        this.logger.warn(
+          'Missing required fields (userId or cohortId) for cohort member creation',
+        );
+        return;
+      }
+
+      const cohortMemberData: any = {
+        UserID: userId,
+        CohortID: cohortId,
+        MemberStatus: status,
+        AcademicYearID: academicYearId,
+      };
+
+      // Include CohortMemberID if provided
+      if (cohortMembershipId) {
+        cohortMemberData.CohortMemberID = cohortMembershipId;
+      }
+
+      // Include StatusReason if provided
+      if (statusReason) {
+        cohortMemberData.StatusReason = statusReason;
+      }
+
+      const result = await this.dbService.upsertCohortMemberData(cohortMemberData);
+      this.logger.log(
+        `Cohort member ${result.action}: userId=${userId}, cohortId=${cohortId}, updatedmember =${result.data}`,
+      );
+
+      return result;
+    } catch (error) {
+      this.logger.error(
+        `Failed to create cohort member: ${error.message} | stack=${error?.stack}`,
+      );
+      throw error;
+    }
+  }
 
   async handleCohortMemberUpsert(data: any) {
     try {
@@ -98,8 +151,7 @@ export class CohortMemberHandler {
 
       if (Object.keys(updates).length === 0) {
         this.logger.debug(
-          `No updates to perform | cohortMembershipId=${cohortMembershipId} | status=${status || 'none'} | customFieldsLen=${customFields.length} | fieldsKeys=${
-            data?.fields ? Object.keys(data.fields).join(',') : 'none'
+          `No updates to perform | cohortMembershipId=${cohortMembershipId} | status=${status || 'none'} | customFieldsLen=${customFields.length} | fieldsKeys=${data?.fields ? Object.keys(data.fields).join(',') : 'none'
           }`,
         );
         return;

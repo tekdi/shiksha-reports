@@ -40,6 +40,8 @@ import { ProjectTaskTracking } from './entities/projectTaskTracking.entity';
 import { SurveyHandler } from './handlers/survey.handler';
 import { SurveyList } from './entities/survey-list.entity';
 import { SurveyTracker } from './entities/survey-tracker.entity';
+import { CohortAcademicYear } from './entities/cohort-academic-year.entity';
+import { CohortAcademicYearHandler } from './handlers/cohort-academic-year.handler';
 
 @Module({
   imports: [
@@ -91,6 +93,7 @@ import { SurveyTracker } from './entities/survey-tracker.entity';
       ProjectTaskTracking, // Add ProjectTaskTracking entity for tracking completed tasks
       SurveyList,
       SurveyTracker,
+      CohortAcademicYear,
     ]),
   ],
   controllers: [
@@ -110,6 +113,7 @@ import { SurveyTracker } from './entities/survey-tracker.entity';
     ProjectHandler,
     ContentMetadataHandler,
     SurveyHandler,
+    CohortAcademicYearHandler,
     TransformService,
     // Cron job services
     ExternalApiService,

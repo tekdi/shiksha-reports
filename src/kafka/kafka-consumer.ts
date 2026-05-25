@@ -17,6 +17,7 @@ import { CohortMemberHandler } from 'src/handlers/cohort-member.handler';
 import { ProjectHandler } from 'src/handlers/project.handler';
 import { ContentMetadataHandler } from 'src/handlers/content-metadata.handler';
 import { SurveyHandler } from 'src/handlers/survey.handler';
+import { CohortAcademicYearHandler } from 'src/handlers/cohort-academic-year.handler';
 
 @Injectable()
 export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
@@ -37,6 +38,7 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
     private readonly projectHandler: ProjectHandler,
     private readonly contentMetadataHandler: ContentMetadataHandler,
     private readonly surveyHandler: SurveyHandler,
+    private readonly cohortAcademicYearHandler: CohortAcademicYearHandler,
   ) {
     const brokers = this.configService
       .get<string>('KAFKA_BROKERS', 'localhost:9092')
@@ -221,7 +223,7 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
     switch (eventType) {
       case 'USER_CREATED':
         return this.userHandler.handleUserCreated(data);
-        
+
       case 'USER_UPDATED':
         return this.userHandler.handleUserUpsert(data);
 
@@ -244,8 +246,13 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
         return this.cohortHandler.handleCohortDelete(data);
 
       case 'COHORT_MEMBER_CREATED':
+        return this.cohortMemberHandler.handleCohortMemberCreated(data);
+
       case 'COHORT_MEMBER_UPDATED':
         return this.cohortMemberHandler.handleCohortMemberUpsert(data);
+
+      case 'COHORT_ACADEMIC_YEAR_CREATED':
+        return this.cohortAcademicYearHandler.handleCohortAcademicYearCreated(data);
       default:
         this.logger.warn(`Unhandled user eventType: ${eventType}`);
     }
@@ -435,7 +442,7 @@ export class KafkaConsumerService implements OnModuleInit, OnModuleDestroy {
     if (message.createdAt && message.updatedAt) {
       const created = new Date(message.createdAt);
       const updated = new Date(message.updatedAt);
-      
+
       // If created and updated are very close (within 1 second), it's likely a creation event
       const timeDiff = Math.abs(updated.getTime() - created.getTime());
       if (timeDiff < 1000) {
