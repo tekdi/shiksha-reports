@@ -21,7 +21,7 @@ async function migrateCohortMembersAcademicYear() {
 
     const tenantId = 'ef99949b-7f3a-4a5f-806a-e67e683e38f3';
     const apiBaseUrl = 'http://localhost:3000';
-    const bearerToken = 'eyJhbGciOiJSUzI1NiIsInR5cCIgOiAiSldUIiwia2lkIiA6ICJPc3NtSUhXaW1NMDN2MUxsVnFvNHBqaS0ydEMwTGhLY0o5dmtwQTlJZV9zIn0.eyJleHAiOjE3Nzk3NzIzMDQsImlhdCI6MTc3OTY4NTkwNCwianRpIjoiOTViZDhlZDMtNzM1ZC00OGMzLWJhNjctZTE1MDA3Njk0NDNkIiwiaXNzIjoiaHR0cHM6Ly9kZXYtbG1wLnByYXRoYW1kaWdpdGFsLm9yZy9hdXRoL3JlYWxtcy9wcmF0aGFtIiwiYXVkIjoiYWNjb3VudCIsInN1YiI6IjgwNThjMGUxLThjNzgtNDQ4My04YWRkLTQ5NWJiZTc3NDgyMyIsInR5cCI6IkJlYXJlciIsImF6cCI6InByYXRoYW0iLCJzZXNzaW9uX3N0YXRlIjoiNjRkM2NhYTItNGJmNi00YjA0LTk2NWEtNzVhZTcwYzJmMjc3IiwiYWNyIjoiMSIsImFsbG93ZWQtb3JpZ2lucyI6WyIvKiJdLCJyZWFsbV9hY2Nlc3MiOnsicm9sZXMiOlsib2ZmbGluZV9hY2Nlc3MiLCJ1bWFfYXV0aG9yaXphdGlvbiIsImRlZmF1bHQtcm9sZXMtcHJhdGhhbSJdfSwicmVzb3VyY2VfYWNjZXNzIjp7ImFjY291bnQiOnsicm9sZXMiOlsibWFuYWdlLWFjY291bnQiLCJtYW5hZ2UtYWNjb3VudC1saW5rcyIsInZpZXctcHJvZmlsZSJdfX0sInNjb3BlIjoiZW1haWwgcHJvZmlsZSBwcmF0aGFtLXJvbGUiLCJzaWQiOiI2NGQzY2FhMi00YmY2LTRiMDQtOTY1YS03NWFlNzBjMmYyNzciLCJlbWFpbF92ZXJpZmllZCI6ZmFsc2UsIm5hbWUiOiJ0ZXN0IGthZmthIDYiLCJwcmVmZXJyZWRfdXNlcm5hbWUiOiJzYW1wbGVrYWZrYXRlc3QzMSIsInVzZXJfcm9sZXMiOiJTdXBlciBBZG1pbiIsImdpdmVuX25hbWUiOiJ0ZXN0IiwiZmFtaWx5X25hbWUiOiJrYWZrYSA2In0.c7gVV0omGikiJifKZW2P2VhYdWOrUZPR6QAyMoFI1xZUWM6MFSRyjR2QCbIDBlKBuLS0A-aiPRPcPWlTBP7B4tmPdlw942WUQiCqSgueTYPpsm8BK17unQO9-cHaaQPJMttomgSZN7cVGQplU3EjLvMI1apnFGQm7oMk-h6E6-VQ-hUfUbVoY49_A71adfaTyVXgj1nfyGFGBseZlSlvHXO97S-kOAgoFVIptg-AbbMuGbzfysgy4ERMN_1Thh_n4aY6bBxTGIYNOKsrCwlhsfzGf-erbdWIQlz4RRt6VSEV3nyjtWHS9040Nw7XuhSm79FsW_61vADJYMwyxgtMZA'
+    const bearerToken = process.env.BEARER_TOKEN;
        /**
      * FETCH ACTIVE ACADEMIC YEAR FROM DB
      */
@@ -116,9 +116,7 @@ async function migrateCohortMembersAcademicYear() {
           continue;
         }
 
-        /**
-        //  * CREATE MEMBERSHIP MAPPING VIA API
-        //  */
+        
         await axios.post(
           `${apiBaseUrl}/user/v1/cohortmember/create`,
           {

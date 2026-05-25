@@ -18,7 +18,7 @@ export class CohortMemberHandler {
       const cohortId: string | undefined = data?.cohortId || data?.CohortID;
       const status: string | undefined = data?.status || data?.MemberStatus || 'active';
       const academicYearId: string | undefined =
-        data?.academicyearId;
+        data?.academicYearId;
       const statusReason: string | undefined =
         data?.statusReason || data?.StatusReason;
 

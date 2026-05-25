@@ -638,7 +638,7 @@ export class DatabaseService {
           // Only update if status is different or time spent has changed
           if (
             existingTracker.contentTrackingStatus !==
-            contentTrackerData.contentTrackingStatus ||
+             contentTrackerData.contentTrackingStatus ||
             existingTracker.timeSpent !== contentTrackerData.timeSpent
           ) {
             const updateResult = await this.contentTrackerRepo.update(
@@ -693,7 +693,7 @@ export class DatabaseService {
         // If roleId is not provided, update all records matching userId and tenantId
         // First, find all existing records
         const existingRecords = await this.registrationTrackerRepo.find({
-          where: {
+          where: { 
             userId: registrationData.userId,
             tenantId: registrationData.tenantId
           }
@@ -706,7 +706,7 @@ export class DatabaseService {
             tenantRegnDate: registrationData.tenantRegnDate,
             reason: registrationData.reason,
           };
-
+          
           // Only update platformRegnDate if provided
           if (registrationData.platformRegnDate) {
             updateData.platformRegnDate = registrationData.platformRegnDate;
@@ -714,7 +714,7 @@ export class DatabaseService {
 
           // Update all matching records
           await this.registrationTrackerRepo.update(
-            {
+            { 
               userId: registrationData.userId,
               tenantId: registrationData.tenantId
             },

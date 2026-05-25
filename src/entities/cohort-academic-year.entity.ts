@@ -12,5 +12,5 @@ export class CohortAcademicYear {
   cohortId: string;
 
   @Column({ name: 'TenantID', type: 'uuid', nullable: false })
-  tenantId?: string;
+  tenantId: string;
 }

@@ -8,7 +8,6 @@ export class CohortAcademicYearHandler {
   constructor(private readonly dbService: DatabaseService) {}
 
   async handleCohortAcademicYearCreated(data: any) {
-    console.log(data)
     try {
       this.logger.debug(
         `Incoming cohort academic year created event: ${JSON.stringify(data)}`,

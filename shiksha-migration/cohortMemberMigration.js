@@ -63,7 +63,6 @@ async function upsertCohortMember(destClient, row) {
       row.cohortMembershipId,
       row.statusReason || null
     ];
-    console.log(row)
     await destClient.query(upsert, values);
   } catch (e) {
     console.error(`[COHORT MEMBERS] Error upserting CohortMemberID=${row.cohortMembershipId}:`, e.message);
