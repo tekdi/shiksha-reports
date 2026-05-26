@@ -5,7 +5,7 @@ import { DatabaseService } from '../services/database.service';
 export class CohortMemberHandler {
   private readonly logger = new Logger(CohortMemberHandler.name);
 
-  constructor(private readonly dbService: DatabaseService) { }
+  constructor(private readonly dbService: DatabaseService) {}
 
   async handleCohortMemberCreated(data: any) {
     try {

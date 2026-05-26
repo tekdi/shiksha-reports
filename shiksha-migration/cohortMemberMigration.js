@@ -35,7 +35,7 @@ async function migrateCohortMembers() {
     const res = await sourceClient.query(query);
     console.log(`[COHORT MEMBERS] Found ${res.rows.length} cohort member records to migrate.`);
     for (const row of res.rows) {
-      await upsertCohortMember(destClient, row);
+      await updateCohortMember(destClient, row);
     }
 
     console.log('[COHORT MEMBERS] Migration completed successfully');
@@ -48,9 +48,9 @@ async function migrateCohortMembers() {
   }
 }
 
-async function upsertCohortMember(destClient, row) {
+async function updateCohortMember(destClient, row) {
   try {
-    const upsert = `
+    const update = `
   UPDATE public."CohortMember"
   SET "StatusReason" = $2
   WHERE "CohortMemberID" = $1;
@@ -59,9 +59,9 @@ async function upsertCohortMember(destClient, row) {
       row.cohortMembershipId,
       row.statusReason || null
     ];
-    await destClient.query(upsert, values);
+    await destClient.query(update, values);
   } catch (e) {
-    console.error(`[COHORT MEMBERS] Error upserting CohortMemberID=${row.cohortMembershipId}:`, e.message);
+    console.error(`[COHORT MEMBERS] Error updating CohortMemberID=${row.cohortMembershipId}:`, e.message);
   }
 }
 

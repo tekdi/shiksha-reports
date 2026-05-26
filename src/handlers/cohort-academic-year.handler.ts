@@ -13,7 +13,6 @@ export class CohortAcademicYearHandler {
         `Incoming cohort academic year created event: ${JSON.stringify(data)}`,
       );
 
-      // Producer sends: cohortAcademicYearId, cohortId, academicYearId, createdBy, updatedBy, createdAt, updatedAt
       // Map to entity fields: cohortAcYrMappingId, cohortId, acYrId, tenantId
       const cohortAcYrMappingId = data?.cohortAcademicYearId;
       const acYrId = data?.academicYearId;
@@ -26,7 +25,7 @@ export class CohortAcademicYearHandler {
 
       if (!acYrId || !cohortId || !tenantId) {
         this.logger.warn(
-          `Missing required fields | academicYearId=${acYrId} | cohortId=${cohortId}`,
+          `Missing required fields | academicYearId=${acYrId} | cohortId=${cohortId} | tenantId=${tenantId}`,
         );
         return;
       }

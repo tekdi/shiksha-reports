@@ -48,9 +48,6 @@ async function migrateCohortMembersAcademicYear() {
       `[COHORT_MEMBERS_ACADEMIC_YEAR] Active Academic Year: ${academicYearId}`
     );
 
-    /**
-     * FETCH ACTIVE Lead/Instructor MEMBERS FROM THE ACTIVE ACADEMIC YEAR
-     */
     const membersQuery = `
       SELECT cm."userId", cm."cohortId", cay."cohortAcademicYearId"
       FROM public."CohortMembers" cm
@@ -71,7 +68,7 @@ async function migrateCohortMembersAcademicYear() {
     const members = membersRes.rows;
 
     console.log(
-      `[COHORT_MEMBERS_ACADEMIC_YEAR] Found ${members.length} active Lead/Instructor members from previous year`
+      `[COHORT_MEMBERS_ACADEMIC_YEAR] Found ${members.length} active Lead/Instructor members`
     );
 
     let inserted = 0;
