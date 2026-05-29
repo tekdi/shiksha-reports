@@ -55,7 +55,7 @@ async function migrateCohortAcademicYear() {
       FROM public."Cohort"
       WHERE status = 'active'
         AND "tenantId" = $1
-        AND type IN ('BATCH', 'CENTER')
+        AND type IN ('BATCH', 'COHORT')
     `;
 
     const cohortRes = await dbclient.query(
