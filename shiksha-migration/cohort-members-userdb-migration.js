@@ -57,6 +57,7 @@ async function migrateCohortMembersAcademicYear() {
       JOIN public."Cohort" c ON c."cohortId" = cm."cohortId"
       WHERE c."tenantId" = $1
         AND cay."academicYearId" = $2
+        ANd cm."status"='active'
       GROUP BY cm."userId", cm."cohortId", cay."cohortAcademicYearId"
     `;
 
