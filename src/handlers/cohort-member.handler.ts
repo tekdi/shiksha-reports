@@ -16,6 +16,8 @@ export class CohortMemberHandler {
       const userId: string | undefined = data?.userId || data?.UserID;
       const cohortId: string | undefined = data?.cohortId || data?.CohortID;
       const status: string | undefined = data?.status || data?.MemberStatus;
+      const statusReason: string | null | undefined =
+      data?.statusReason !== undefined ? data.statusReason : data?.StatusReason;
       const academicYearId: string | undefined =
         data?.academicYearId || data?.AcademicYearID;
 
@@ -65,6 +67,10 @@ export class CohortMemberHandler {
       // Include status if provided
       if (status) {
         updates['MemberStatus'] = status;
+      }
+
+      if (statusReason !== undefined) {
+        updates['StatusReason'] = statusReason;
       }
 
       // Path A: Support a direct fields map: { fields: { Subject: 'x', Fees: 'y', ... } }

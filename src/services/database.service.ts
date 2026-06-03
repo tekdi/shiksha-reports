@@ -206,7 +206,14 @@ export class DatabaseService {
     updates: Record<string, string | null | undefined>,
   ) {
     // Only allow specific columns to be updated
-    const allowed = new Set(['Subject', 'Fees', 'Registration', 'Board', 'MemberStatus']);
+    const allowed = new Set([
+      'Subject',
+      'Fees',
+      'Registration',
+      'Board',
+      'MemberStatus',
+      'StatusReason',
+    ]);
     const entries = Object.entries(updates).filter(([k, v]) =>
       allowed.has(k),
     );
@@ -290,7 +297,9 @@ export class DatabaseService {
           existingMember.UserID === cohortMemberData.UserID &&
           existingMember.CohortID === cohortMemberData.CohortID &&
           existingMember.MemberStatus === cohortMemberData.MemberStatus &&
-          existingMember.AcademicYearID === cohortMemberData.AcademicYearID;
+          existingMember.AcademicYearID === cohortMemberData.AcademicYearID &&
+          (cohortMemberData.StatusReason === undefined ||
+            existingMember.StatusReason === cohortMemberData.StatusReason);
 
         if (allFieldsSame) {
           console.log(
@@ -311,6 +320,7 @@ export class DatabaseService {
           {
             MemberStatus: cohortMemberData.MemberStatus,
             AcademicYearID: cohortMemberData.AcademicYearID,
+            StatusReason: cohortMemberData.StatusReason,
           },
         );
 
