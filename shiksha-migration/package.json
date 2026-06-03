@@ -8,6 +8,7 @@
     "start:course": "node course-migration.js",
     "start:events": "node events-migration.js",
     "start:user": "node user-migration.js",
+    "start:survey": "node survey-migration.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -16,6 +17,7 @@
   "dependencies": {
     "axios": "^1.7.2",
     "dotenv": "^16.4.5",
+    "exceljs": "^4.4.0",
     "mongodb": "^7.0.0",
     "pg": "^8.16.3",
     "uuid": "^11.1.0"
