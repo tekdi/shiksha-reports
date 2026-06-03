@@ -298,7 +298,8 @@ export class DatabaseService {
           existingMember.CohortID === cohortMemberData.CohortID &&
           existingMember.MemberStatus === cohortMemberData.MemberStatus &&
           existingMember.AcademicYearID === cohortMemberData.AcademicYearID &&
-          existingMember.StatusReason === cohortMemberData.StatusReason;
+          (cohortMemberData.StatusReason === undefined ||
+            existingMember.StatusReason === cohortMemberData.StatusReason);
 
         if (allFieldsSame) {
           console.log(
