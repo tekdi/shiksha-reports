@@ -114,6 +114,14 @@ export class User {
   })
   userWhatDoYouWantToBecome?: string;
 
+  @Column({
+    name: 'UserInterestedToJoin',
+    type: 'varchar',
+    length: 100,
+    nullable: true,
+  })
+  interestedToJoin?: string;
+
   @Column({ name: 'UserClass', type: 'varchar', length: 50, nullable: true })
   userClass?: string;
 
