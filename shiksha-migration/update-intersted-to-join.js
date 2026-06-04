@@ -44,7 +44,8 @@ async function updateInterestedToJoin() {
             return;
         }
 
-        let updated = 0;
+        const userIds = [];
+        const values = [];
         let skipped = 0;
 
         for (const row of sourceResult.rows) {
@@ -52,30 +53,32 @@ async function updateInterestedToJoin() {
 
             // Extract the scalar value from the array/text stored in FieldValues
             let rawValue = row.value;
-            if (Array.isArray(rawValue) && rawValue.length > 0) {
-                rawValue = rawValue[0];
+            if (Array.isArray(rawValue)) {
+                rawValue = rawValue.length > 0 ? rawValue[0] : null;
             }
             if (!rawValue) {
                 skipped++;
                 continue;
             }
 
-            // Only UPDATE — never INSERT. Skip if user does not exist in destination.
+            userIds.push(userId);
+            values.push(rawValue);
+        }
+
+        let updated = 0;
+        if (userIds.length > 0) {
+            // Bulk update using UNNEST to avoid N+1 query overhead
             const updateQuery = `
-        UPDATE public."Users"
-        SET "UserInterestedToJoin" = $2
-        WHERE "UserID" = $1
-      `;
-
-            const result = await destClient.query(updateQuery, [userId, rawValue]);
-
-            if (result.rowCount > 0) {
-                console.log(`[UPDATE] ✅ Updated UserID=${userId}  →  UserInterestedToJoin="${rawValue}"`);
-                updated++;
-            } else {
-                console.log(`[UPDATE] ⚠️  Skipped UserID=${userId} — not found in destination DB`);
-                skipped++;
-            }
+                UPDATE public."Users" AS u
+                SET "UserInterestedToJoin" = vals.val
+                FROM (
+                    SELECT unnest($1::uuid[]) AS user_id, unnest($2::varchar[]) AS val
+                ) AS vals
+                WHERE u."UserID" = vals.user_id
+            `;
+            const result = await destClient.query(updateQuery, [userIds, values]);
+            updated = result.rowCount;
+            skipped += (userIds.length - updated);
         }
 
         console.log('\n=== SUMMARY ===');
