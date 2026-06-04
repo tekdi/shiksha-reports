@@ -171,6 +171,9 @@ export class TransformService {
         userWhatDoYouWantToBecome: extractCustomField(
           'WHAT_DO_YOU_WANT_TO_BECOME',
         ),
+        interestedToJoin: extractCustomField(
+          'INTERESTED_TO_JOIN',
+        ),
         userDropOutReason: extractCustomField(
           'REASON_FOR_DROP_OUT_FROM_SCHOOL',
         ),
