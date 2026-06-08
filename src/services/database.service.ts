@@ -209,7 +209,7 @@ export class DatabaseService {
     updates: Record<string, string | null | undefined>,
   ) {
     // Only allow specific columns to be updated
-     const allowed = new Set([
+    const allowed = new Set([
       'Subject',
       'Fees',
       'Registration',
@@ -322,6 +322,7 @@ export class DatabaseService {
           },
           {
             MemberStatus: cohortMemberData.MemberStatus,
+            AcademicYearID: cohortMemberData.AcademicYearID,
             StatusReason: cohortMemberData.StatusReason,
           },
         );
