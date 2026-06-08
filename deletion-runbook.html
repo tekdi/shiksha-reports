@@ -1,0 +1,626 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>User Deletion Runbook — Shiksha Platform</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      line-height: 1.7;
+      padding: 2rem 1rem 4rem;
+    }
+
+    .page { max-width: 900px; margin: 0 auto; }
+
+    /* ── Header ── */
+    .header {
+      border-left: 5px solid #f97316;
+      padding: 1.2rem 1.5rem;
+      background: #1a1d27;
+      border-radius: 0 8px 8px 0;
+      margin-bottom: 2.5rem;
+    }
+    .header h1 { font-size: 1.6rem; color: #f97316; font-weight: 700; }
+    .header .meta { font-size: 0.82rem; color: #94a3b8; margin-top: 0.4rem; }
+    .badge {
+      display: inline-block;
+      padding: 0.15rem 0.6rem;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-right: 0.4rem;
+    }
+    .badge-danger  { background: #7f1d1d; color: #fca5a5; }
+    .badge-warning { background: #78350f; color: #fcd34d; }
+    .badge-info    { background: #1e3a5f; color: #93c5fd; }
+
+    /* ── Section ── */
+    section { margin-bottom: 2.5rem; }
+    h2 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #f8fafc;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      padding-bottom: 0.4rem;
+      border-bottom: 1px solid #2d3748;
+      margin-bottom: 1.2rem;
+    }
+    h3 { font-size: 0.95rem; color: #cbd5e1; margin: 1rem 0 0.5rem; font-weight: 600; }
+
+    p { color: #cbd5e1; margin-bottom: 0.7rem; font-size: 0.92rem; }
+
+    /* ── Alert box ── */
+    .alert {
+      border-radius: 6px;
+      padding: 0.9rem 1.1rem;
+      font-size: 0.88rem;
+      margin-bottom: 1rem;
+      display: flex;
+      gap: 0.7rem;
+      align-items: flex-start;
+    }
+    .alert-danger  { background: #1f0707; border: 1px solid #7f1d1d; color: #fca5a5; }
+    .alert-warning { background: #1c1206; border: 1px solid #78350f; color: #fde68a; }
+    .alert-success { background: #052e1a; border: 1px solid #166534; color: #86efac; }
+    .alert-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 0.05rem; }
+
+    /* ── Checklist ── */
+    .checklist { list-style: none; }
+    .checklist li {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.7rem;
+      padding: 0.55rem 0;
+      border-bottom: 1px solid #1e2535;
+      font-size: 0.9rem;
+      color: #cbd5e1;
+    }
+    .checklist li:last-child { border-bottom: none; }
+    .checklist input[type="checkbox"] {
+      width: 1rem; height: 1rem;
+      margin-top: 0.2rem;
+      flex-shrink: 0;
+      accent-color: #f97316;
+      cursor: pointer;
+    }
+    .checklist label { cursor: pointer; }
+
+    /* ── Steps ── */
+    .steps { counter-reset: step; }
+    .step {
+      display: flex;
+      gap: 1rem;
+      margin-bottom: 1.4rem;
+      align-items: flex-start;
+    }
+    .step-num {
+      counter-increment: step;
+      content: counter(step);
+      min-width: 2rem; height: 2rem;
+      background: #f97316;
+      color: #0f1117;
+      font-weight: 800;
+      font-size: 0.85rem;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      margin-top: 0.15rem;
+    }
+    .step-body { flex: 1; }
+    .step-title { font-weight: 700; color: #f8fafc; font-size: 0.92rem; margin-bottom: 0.3rem; }
+    .step-desc { font-size: 0.87rem; color: #94a3b8; }
+
+    /* ── Code block ── */
+    pre {
+      background: #0a0c13;
+      border: 1px solid #2d3748;
+      border-radius: 6px;
+      padding: 0.9rem 1rem;
+      font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+      font-size: 0.82rem;
+      color: #a3e635;
+      overflow-x: auto;
+      margin: 0.5rem 0 0.8rem;
+      white-space: pre;
+    }
+    code {
+      background: #1a1d27;
+      padding: 0.1rem 0.35rem;
+      border-radius: 3px;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.82rem;
+      color: #fb923c;
+    }
+
+    /* ── FK Diagram ── */
+    .fk-diagram {
+      display: flex;
+      gap: 2rem;
+      flex-wrap: wrap;
+      margin-top: 0.5rem;
+    }
+    .fk-col { flex: 1; min-width: 260px; }
+    .fk-col h3 { color: #f97316; border-bottom: 1px solid #2d3748; padding-bottom: 0.3rem; margin-bottom: 0.7rem; }
+    .fk-table {
+      background: #1a1d27;
+      border: 1px solid #2d3748;
+      border-radius: 6px;
+      padding: 0.6rem 0.9rem;
+      font-size: 0.85rem;
+      margin-bottom: 0.5rem;
+      position: relative;
+      color: #e2e8f0;
+    }
+    .fk-table .order {
+      position: absolute;
+      right: 0.7rem; top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.7rem;
+      color: #64748b;
+      font-weight: 600;
+    }
+    .fk-arrow {
+      text-align: center;
+      color: #f97316;
+      font-size: 1rem;
+      line-height: 1;
+      margin-bottom: 0.3rem;
+    }
+    .fk-table.parent { border-color: #f97316; color: #fed7aa; }
+
+    /* ── Log schema ── */
+    .log-field {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      gap: 0.3rem 1rem;
+      font-size: 0.85rem;
+      padding: 0.45rem 0;
+      border-bottom: 1px solid #1e2535;
+    }
+    .log-field:last-child { border-bottom: none; }
+    .log-key { color: #fb923c; font-family: monospace; }
+    .log-val { color: #94a3b8; }
+
+    /* ── Env table ── */
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th {
+      text-align: left;
+      padding: 0.5rem 0.8rem;
+      background: #1a1d27;
+      color: #f97316;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    td {
+      padding: 0.5rem 0.8rem;
+      border-bottom: 1px solid #1e2535;
+      color: #cbd5e1;
+      font-family: monospace;
+      font-size: 0.82rem;
+    }
+    tr:last-child td { border-bottom: none; }
+
+    /* ── QA vs Prod ── */
+    .compare {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+    .compare-col { background: #1a1d27; border-radius: 8px; padding: 1rem 1.2rem; }
+    .compare-col h3 { margin-top: 0; color: #f8fafc; font-size: 0.9rem; }
+    .compare-col ul { list-style: none; }
+    .compare-col ul li {
+      font-size: 0.85rem;
+      color: #94a3b8;
+      padding: 0.3rem 0;
+      border-bottom: 1px solid #2d3748;
+      display: flex; gap: 0.5rem;
+    }
+    .compare-col ul li:last-child { border-bottom: none; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; margin-top: 0.4rem; }
+    .dot-green  { background: #22c55e; }
+    .dot-yellow { background: #eab308; }
+    .dot-red    { background: #ef4444; }
+
+    /* ── Footer ── */
+    .footer {
+      margin-top: 3rem;
+      border-top: 1px solid #2d3748;
+      padding-top: 1rem;
+      font-size: 0.78rem;
+      color: #475569;
+      text-align: center;
+    }
+
+    @media print {
+      body { background: white; color: black; }
+      .header { border-color: #ea580c; background: #fff7ed; }
+      pre { background: #f8fafc; color: #166534; border-color: #d1fae5; }
+      .fk-table, .compare-col { background: #f8fafc; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <!-- ── HEADER ── -->
+  <div class="header">
+    <h1>User Data Deletion Runbook</h1>
+    <div class="meta">
+      <span class="badge badge-danger">Irreversible</span>
+      <span class="badge badge-warning">~5.65 lakh users</span>
+      <span class="badge badge-info">2 Databases</span>
+      Shiksha Platform &mdash; Inactive User Cleanup
+    </div>
+  </div>
+
+  <!-- ── 1. OVERVIEW ── -->
+  <section>
+    <h2>1 — Overview</h2>
+    <p>
+      This operation permanently deletes approximately <strong>5,65,000 inactive users</strong> who have a
+      <code>NULL lastLogin</code> value and no activity records in Course, Content, or QuestionSet trackers.
+      Deletion spans two databases and seven tables in total.
+    </p>
+    <div class="alert alert-danger">
+      <span class="alert-icon">🔴</span>
+      <span>This operation is <strong>irreversible</strong>. An S3 encrypted backup must be confirmed before any script runs.
+      If in doubt, stop and verify the backup first.</span>
+    </div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-top:1rem;">
+      <div>
+        <h3>Database 1 — Pratham User Service</h3>
+        <p style="font-size:0.85rem;">Tables affected (in deletion order):</p>
+        <ol style="margin-left:1.2rem; font-size:0.85rem; color:#94a3b8; line-height:1.9;">
+          <li>FieldValues</li>
+          <li>UserRoleMapping</li>
+          <li>UserTenantMapping</li>
+          <li>Users <em>(parent)</em></li>
+        </ol>
+      </div>
+      <div>
+        <h3>Database 2 — Shiksha Reports (Central)</h3>
+        <p style="font-size:0.85rem;">Tables affected (in deletion order):</p>
+        <ol style="margin-left:1.2rem; font-size:0.85rem; color:#94a3b8; line-height:1.9;">
+          <li>RegistrationTracker</li>
+          <li>Users <em>(central report record)</em></li>
+        </ol>
+      </div>
+    </div>
+    <p style="margin-top:1rem; font-size:0.85rem; color:#94a3b8;">
+      Estimated total rows across both DBs: <strong>25 lakh – 75 lakh rows</strong>.
+      Scripts run in batches of 5,000 users with a 100ms pause between batches to avoid CPU spikes and WAL log bloat.
+    </p>
+  </section>
+
+  <!-- ── 2. PREREQUISITES ── -->
+  <section>
+    <h2>2 — Prerequisites Checklist</h2>
+    <p style="font-size:0.85rem; color:#64748b; margin-bottom:0.8rem;">
+      Check every item before running any script. Do not proceed if any item is unchecked.
+    </p>
+    <ul class="checklist">
+      <li>
+        <input type="checkbox" id="c1" /><label for="c1">
+          <strong>S3 backup confirmed</strong> — encrypted snapshot of both databases exists and restore has been verified on a test instance.
+        </label>
+      </li>
+      <li>
+        <input type="checkbox" id="c2" /><label for="c2">
+          <strong>CSV file ready</strong> — <code>users-to-delete.csv</code> placed at <code>shiksha-migration/users-to-delete.csv</code>.
+          Header row is <code>userId</code>, one UUID per row. Row count verified against the source report.
+        </label>
+      </li>
+      <li>
+        <input type="checkbox" id="c3" /><label for="c3">
+          <strong>.env configured</strong> — <code>USER_SOURCE_DB_*</code> and <code>DEST_DB_*</code> environment variables set
+          correctly for the target environment (QA or Production).
+        </label>
+      </li>
+      <li>
+        <input type="checkbox" id="c4" /><label for="c4">
+          <strong>QA dry-run passed</strong> — both scripts run with <code>--dry-run</code> on QA and row counts match expectations.
+        </label>
+      </li>
+      <li>
+        <input type="checkbox" id="c5" /><label for="c5">
+          <strong>QA live-run passed</strong> — both scripts run with <code>--live</code> on QA. Logs reviewed. No unexpected errors.
+        </label>
+      </li>
+      <li>
+        <input type="checkbox" id="c6" /><label for="c6">
+          <strong>Off-peak window scheduled</strong> — execution planned for night or weekend to avoid impact on live users.
+        </label>
+      </li>
+      <li>
+        <input type="checkbox" id="c7" /><label for="c7">
+          <strong>Team informed</strong> — DBA and platform lead notified of the maintenance window.
+        </label>
+      </li>
+      <li>
+        <input type="checkbox" id="c8" /><label for="c8">
+          <strong>DB monitoring active</strong> — CPU, WAL, I/O dashboards open and being watched during the run.
+        </label>
+      </li>
+    </ul>
+  </section>
+
+  <!-- ── 3. EXECUTION STEPS ── -->
+  <section>
+    <h2>3 — Step-by-Step Execution</h2>
+
+    <div class="alert alert-warning">
+      <span class="alert-icon">⚠️</span>
+      <span>Run <strong>Script 1 (Pratham)</strong> fully and verify its log before starting Script 2 (Reports).
+      Never run both scripts simultaneously.</span>
+    </div>
+
+    <div class="steps">
+
+      <!-- Step 1 -->
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <div class="step-title">Navigate to the migration directory</div>
+          <pre>cd shiksha-migration</pre>
+        </div>
+      </div>
+
+      <!-- Step 2 -->
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <div class="step-title">Verify CSV is in place and has the correct format</div>
+          <pre>head -5 users-to-delete.csv
+wc -l users-to-delete.csv</pre>
+          <div class="step-desc">Expected: first line is <code>userId</code>, remaining lines are UUIDs. Count should match your source report.</div>
+        </div>
+      </div>
+
+      <!-- Step 3 -->
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <div class="step-title">Dry-run Script 1 — Pratham User DB</div>
+          <pre>node delete-users-pratham.js --dry-run</pre>
+          <div class="step-desc">
+            Prints pre-flight row counts for FieldValues, UserRoleMapping, UserTenantMapping, Users.
+            No rows are deleted. Writes a log to <code>logs/deletion-pratham-YYYY-MM-DD.json</code>.
+            <br/><strong>Verify:</strong> counts look reasonable. If any count is 0 unexpectedly, stop and investigate.
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 4 -->
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <div class="step-title">Live-run Script 1 — Pratham User DB</div>
+          <pre>node delete-users-pratham.js --live</pre>
+          <div class="step-desc">
+            Executes batched deletes (5,000 users/batch) in FK-safe order. Each batch runs inside a transaction —
+            on failure the batch rolls back and the error is logged. VACUUM ANALYZE runs automatically after all batches.
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 5 -->
+      <div class="step">
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <div class="step-title">Verify Script 1 log</div>
+          <pre>cat logs/deletion-pratham-YYYY-MM-DD.json | grep -E '"totalRowsAffected"|"error"'</pre>
+          <div class="step-desc">
+            Confirm <code>totalRowsAffected</code> matches the dry-run counts. Check that no batch has a non-null <code>error</code> field.
+            If errors exist, note the batch numbers and investigate before proceeding.
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 6 -->
+      <div class="step">
+        <div class="step-num">6</div>
+        <div class="step-body">
+          <div class="step-title">Dry-run Script 2 — Shiksha Reports DB</div>
+          <pre>node delete-users-reports.js --dry-run</pre>
+          <div class="step-desc">
+            Prints row counts for CourseTracker, ContentTracker, QuestionSetTracker.
+            Writes log to <code>logs/deletion-reports-YYYY-MM-DD.json</code>.
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 7 -->
+      <div class="step">
+        <div class="step-num">7</div>
+        <div class="step-body">
+          <div class="step-title">Live-run Script 2 — Shiksha Reports DB</div>
+          <pre>node delete-users-reports.js --live</pre>
+          <div class="step-desc">
+            Same batching and transaction safety as Script 1. VACUUM ANALYZE runs on all three tracker tables after completion.
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 8 -->
+      <div class="step">
+        <div class="step-num">8</div>
+        <div class="step-body">
+          <div class="step-title">Verify Script 2 log</div>
+          <pre>cat logs/deletion-reports-YYYY-MM-DD.json | grep -E '"totalRowsAffected"|"error"'</pre>
+          <div class="step-desc">Same verification as Step 5. Confirm totals and zero errors.</div>
+        </div>
+      </div>
+
+      <!-- Step 9 -->
+      <div class="step">
+        <div class="step-num">9</div>
+        <div class="step-body">
+          <div class="step-title">Archive logs to S3 / shared storage</div>
+          <div class="step-desc">
+            Copy both JSON log files to your backup/audit storage for compliance. These logs document exactly
+            what was deleted, in which batch, and at what time.
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 10 -->
+      <div class="step">
+        <div class="step-num">10</div>
+        <div class="step-body">
+          <div class="step-title">Post-deletion health check</div>
+          <pre># Check table sizes after VACUUM
+SELECT relname, n_live_tup, n_dead_tup, last_vacuum, last_analyze
+FROM pg_stat_user_tables
+WHERE relname IN ('Users','UserTenantMapping','UserRoleMapping','FieldValues')
+ORDER BY relname;</pre>
+          <div class="step-desc">Confirm dead tuple counts are near zero after VACUUM ANALYZE.</div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ── 4. FK DEPENDENCY ORDER ── -->
+  <section>
+    <h2>4 — Table Deletion Order (FK Constraints)</h2>
+    <p style="font-size:0.85rem; color:#94a3b8; margin-bottom:1rem;">
+      Child tables must be deleted before parent tables. Scripts enforce this order automatically.
+    </p>
+    <div class="fk-diagram">
+      <div class="fk-col">
+        <h3>Pratham User DB</h3>
+        <div class="fk-table">FieldValues <span class="order">DELETE 1st</span></div>
+        <div class="fk-arrow">↓</div>
+        <div class="fk-table">UserRoleMapping <span class="order">DELETE 2nd</span></div>
+        <div class="fk-arrow">↓</div>
+        <div class="fk-table">UserTenantMapping <span class="order">DELETE 3rd</span></div>
+        <div class="fk-arrow">↓</div>
+        <div class="fk-table parent">Users (parent) <span class="order">DELETE 4th</span></div>
+      </div>
+      <div class="fk-col">
+        <h3>Shiksha Reports DB</h3>
+        <div class="fk-table">RegistrationTracker <span class="order">DELETE 1st</span></div>
+        <div class="fk-arrow">↓</div>
+        <div class="fk-table parent">Users (central report record) <span class="order">DELETE 2nd</span></div>
+        <div class="fk-arrow" style="visibility:hidden;">↓</div>
+        <div class="fk-table" style="visibility:hidden;">–</div>
+        <div class="fk-arrow" style="visibility:hidden;">↓</div>
+        <div class="fk-table" style="visibility:hidden;">–</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 5. LOG FILE REFERENCE ── -->
+  <section>
+    <h2>5 — Log File Reference</h2>
+    <p style="font-size:0.85rem; color:#94a3b8; margin-bottom:0.8rem;">
+      Both scripts write a JSON log to <code>shiksha-migration/logs/</code>. Fields:
+    </p>
+    <div class="log-field"><span class="log-key">script</span><span class="log-val">Script filename that produced this log</span></div>
+    <div class="log-field"><span class="log-key">mode</span><span class="log-val">"dry-run" or "live"</span></div>
+    <div class="log-field"><span class="log-key">database</span><span class="log-val">DB name connected to</span></div>
+    <div class="log-field"><span class="log-key">host</span><span class="log-val">DB host</span></div>
+    <div class="log-field"><span class="log-key">startedAt</span><span class="log-val">ISO timestamp when script started</span></div>
+    <div class="log-field"><span class="log-key">finishedAt</span><span class="log-val">ISO timestamp when script finished</span></div>
+    <div class="log-field"><span class="log-key">totalUsersInCsv</span><span class="log-val">Number of user IDs loaded from CSV</span></div>
+    <div class="log-field"><span class="log-key">preflightCounts</span><span class="log-val">Row counts per table BEFORE deletion started</span></div>
+    <div class="log-field"><span class="log-key">totalRowsAffected</span><span class="log-val">Total rows deleted per table across all batches</span></div>
+    <div class="log-field"><span class="log-key">batches[]</span><span class="log-val">Per-batch breakdown: batch number, size, rows per table, error (null if OK)</span></div>
+  </section>
+
+  <!-- ── 6. ENV VARIABLES ── -->
+  <section>
+    <h2>6 — Required Environment Variables</h2>
+    <table>
+      <thead>
+        <tr><th>Variable</th><th>Used by</th><th>Description</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>USER_SOURCE_DB_HOST</td><td>Script 1</td><td>Pratham User DB host</td></tr>
+        <tr><td>USER_SOURCE_DB_PORT</td><td>Script 1</td><td>Default: 5432</td></tr>
+        <tr><td>USER_SOURCE_DB_NAME</td><td>Script 1</td><td>Pratham User DB name</td></tr>
+        <tr><td>USER_SOURCE_DB_USER</td><td>Script 1</td><td>DB username</td></tr>
+        <tr><td>USER_SOURCE_DB_PASSWORD</td><td>Script 1</td><td>DB password</td></tr>
+        <tr><td>DEST_DB_HOST</td><td>Script 2</td><td>Shiksha Reports DB host</td></tr>
+        <tr><td>DEST_DB_PORT</td><td>Script 2</td><td>Default: 5555</td></tr>
+        <tr><td>DEST_DB_NAME</td><td>Script 2</td><td>Shiksha Reports DB name</td></tr>
+        <tr><td>DEST_DB_USER</td><td>Script 2</td><td>DB username</td></tr>
+        <tr><td>DEST_DB_PASSWORD</td><td>Script 2</td><td>DB password</td></tr>
+      </tbody>
+    </table>
+    <p style="font-size:0.82rem; color:#64748b; margin-top:0.6rem;">
+      Variables are read from a <code>.env</code> file in the <code>shiksha-migration/</code> directory
+      (same pattern as all other migration scripts).
+    </p>
+  </section>
+
+  <!-- ── 7. ROLLBACK NOTE ── -->
+  <section>
+    <h2>7 — Rollback</h2>
+    <div class="alert alert-danger">
+      <span class="alert-icon">🔴</span>
+      <span><strong>There is no automated rollback.</strong> Deleted rows cannot be recovered from the database.
+      Recovery requires restoring from the S3 encrypted backup.</span>
+    </div>
+    <h3>Restore path (if required)</h3>
+    <ol style="margin-left:1.2rem; font-size:0.87rem; color:#94a3b8; line-height:2;">
+      <li>Halt all application traffic to the affected database.</li>
+      <li>Restore the S3 snapshot to a recovery instance.</li>
+      <li>Verify data integrity on the recovery instance.</li>
+      <li>Promote recovery instance or copy rows back selectively using the deletion log as a reference for which user IDs were affected.</li>
+      <li>Resume application traffic.</li>
+    </ol>
+    <div class="alert alert-warning" style="margin-top:1rem;">
+      <span class="alert-icon">⚠️</span>
+      <span>If a script run is interrupted mid-way, re-running the same script with <code>--live</code> is safe —
+      already-deleted user IDs produce 0 rows affected and the script continues with remaining users.</span>
+    </div>
+  </section>
+
+  <!-- ── 8. QA vs PRODUCTION ── -->
+  <section>
+    <h2>8 — QA vs Production Checklist</h2>
+    <div class="compare">
+      <div class="compare-col">
+        <h3>✅ QA Run</h3>
+        <ul>
+          <li><span class="dot dot-green"></span>Use QA .env credentials</li>
+          <li><span class="dot dot-green"></span>Run --dry-run first, verify counts</li>
+          <li><span class="dot dot-green"></span>Run --live, review logs</li>
+          <li><span class="dot dot-green"></span>Confirm VACUUM ANALYZE completed</li>
+          <li><span class="dot dot-green"></span>Verify app functionality post-deletion</li>
+          <li><span class="dot dot-yellow"></span>Can run during business hours</li>
+        </ul>
+      </div>
+      <div class="compare-col">
+        <h3>⚡ Production Run</h3>
+        <ul>
+          <li><span class="dot dot-red"></span>QA run must be fully complete first</li>
+          <li><span class="dot dot-red"></span>S3 backup verified before starting</li>
+          <li><span class="dot dot-red"></span>Off-peak window only (night/weekend)</li>
+          <li><span class="dot dot-red"></span>DBA monitoring DB during run</li>
+          <li><span class="dot dot-red"></span>All 8 prerequisite checkboxes ticked</li>
+          <li><span class="dot dot-yellow"></span>Run --dry-run again on prod before --live</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── FOOTER ── -->
+  <div class="footer">
+    Shiksha Platform &mdash; User Deletion Runbook &mdash; Generated 2026-06-03 &mdash; Handle with care.
+  </div>
+
+</div>
+</body>
+</html>
