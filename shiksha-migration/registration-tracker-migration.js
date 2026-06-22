@@ -18,22 +18,22 @@ async function migrateRegistrationTracker() {
     await destClient.connect();
     console.log('[REG TRACKER] Connected to destination database');
 
-    // Join UserTenantMapping with UserRolesMapping to get complete registration data
+    // Join UserTenantMapping with UserRolesMapping to get complete registration data for ALL tenants
     const query = `
-      SELECT 
+      SELECT
         utm."userId",
         utm."tenantId",
         utm."createdAt" AS tenant_regn_date,
+        utm."status" AS source_status,
         urm."roleId",
         urm."createdAt" AS role_assigned_date
       FROM public."UserTenantMapping" utm
-      INNER JOIN public."UserRolesMapping" urm 
-        ON utm."userId" = urm."userId" 
+      INNER JOIN public."UserRolesMapping" urm
+        ON utm."userId" = urm."userId"
         AND utm."tenantId" = urm."tenantId"
-      WHERE utm."userId" IS NOT NULL 
+      WHERE utm."userId" IS NOT NULL
         AND utm."tenantId" IS NOT NULL
         AND urm."roleId" IS NOT NULL
-        AND utm."tenantId" = '914ca990-9b45-4385-a06b-05054f35d0b9'
     `;
 
     const res = await sourceClient.query(query);
@@ -67,10 +67,13 @@ async function upsertRegistrationTracker(destClient, row) {
     return;
   }
 
-  // Use the earliest date as platform registration date (could be tenant or role assignment)
+  // Use tenant mapping createdAt as the canonical registration date
   const platformRegnDate = row.tenant_regn_date || row.role_assigned_date || null;
   const tenantRegnDate = row.tenant_regn_date || null;
-  const isActive = true; // Default to active
+  // Preserve original creation timestamp from source — fallback to role assignment date
+  const createdAt = row.tenant_regn_date || row.role_assigned_date || null;
+  // Use status from source DB as-is, fallback to 'active' if null
+  const status = row.source_status ? row.source_status.toLowerCase() : 'active';
 
   // Check if record exists based on (UserID, RoleID, TenantID)
   const existing = await destClient.query(
@@ -79,25 +82,26 @@ async function upsertRegistrationTracker(destClient, row) {
   );
 
   if (existing.rows.length > 0) {
-    // Update existing record
+    // Update existing record — preserve both createdAt and updatedAt from source
     const updateSql = `
       UPDATE public."RegistrationTracker"
       SET "PlatformRegnDate"=$4,
           "TenantRegnDate"=$5,
-          "IsActive"=$6
+          "status"=$6,
+          "updatedAt"=$7
       WHERE "UserID"=$1 AND "RoleID"=$2 AND "TenantID"=$3
     `;
-    await destClient.query(updateSql, [userId, roleId, tenantId, platformRegnDate, tenantRegnDate, isActive]);
+    await destClient.query(updateSql, [userId, roleId, tenantId, platformRegnDate, tenantRegnDate, status, createdAt]);
     return;
   }
 
-  // Insert new record
+  // Insert new record — pass createdAt from source so DEFAULT now() is not used
   const insertSql = `
     INSERT INTO public."RegistrationTracker" (
-      "UserID", "RoleID", "TenantID", "PlatformRegnDate", "TenantRegnDate", "IsActive"
-    ) VALUES ($1, $2, $3, $4, $5, $6)
+      "UserID", "RoleID", "TenantID", "PlatformRegnDate", "TenantRegnDate", "status", "createdAt", "updatedAt"
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $7)
   `;
-  await destClient.query(insertSql, [userId, roleId, tenantId, platformRegnDate, tenantRegnDate, isActive]);
+  await destClient.query(insertSql, [userId, roleId, tenantId, platformRegnDate, tenantRegnDate, status, createdAt]);
 }
 
 if (require.main === module) {

@@ -574,7 +574,7 @@ export class TransformService {
                 tenantId: tenant.tenantId,
                 platformRegnDate: platformRegnDate,
                 tenantRegnDate: platformRegnDate, // Same as platform date for new registrations
-                isActive: true,
+                status: 'active',
                 // Include reason if provided (from tenant, role, or data level)
                 reason: (tenant as any).reason || (role as any).reason || (data as any).reason || undefined,
               };

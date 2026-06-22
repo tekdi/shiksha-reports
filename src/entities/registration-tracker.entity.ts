@@ -28,12 +28,13 @@ export class RegistrationTracker {
   })
   tenantRegnDate: Date;
 
-  @Column({ 
-    name: 'IsActive', 
-    type: 'boolean', 
-    default: true 
+  @Column({
+    name: 'status',
+    type: 'varchar',
+    length: 50,
+    nullable: true,
   })
-  isActive: boolean;
+  status: string;
 
   @Column({ 
     name: 'Reason', 

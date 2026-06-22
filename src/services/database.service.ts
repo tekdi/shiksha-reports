@@ -694,7 +694,7 @@ export class DatabaseService {
           .insert()
           .into(RegistrationTracker)
           .values(registrationData)
-          .orUpdate(['platformRegnDate', 'tenantRegnDate', 'isActive', 'Reason'], ['userId', 'tenantId', 'roleId'])
+          .orUpdate(['platformRegnDate', 'tenantRegnDate', 'status', 'Reason'], ['userId', 'tenantId', 'roleId'])
           .execute();
 
         return result;
@@ -711,11 +711,11 @@ export class DatabaseService {
         if (existingRecords && existingRecords.length > 0) {
           // Update all matching records
           const updateData: Partial<RegistrationTracker> = {
-            isActive: registrationData.isActive,
+            status: registrationData.status,
             tenantRegnDate: registrationData.tenantRegnDate,
             reason: registrationData.reason,
           };
-          
+
           // Only update platformRegnDate if provided
           if (registrationData.platformRegnDate) {
             updateData.platformRegnDate = registrationData.platformRegnDate;
@@ -723,7 +723,7 @@ export class DatabaseService {
 
           // Update all matching records
           await this.registrationTrackerRepo.update(
-            { 
+            {
               userId: registrationData.userId,
               tenantId: registrationData.tenantId
             },
@@ -770,7 +770,7 @@ export class DatabaseService {
 
         if (existingRecords && existingRecords.length > 0) {
           const updateData: Partial<RegistrationTracker> = {
-            isActive: registrationData.isActive,
+            status: registrationData.status,
             tenantRegnDate: registrationData.tenantRegnDate,
             reason: registrationData.reason,
           };
