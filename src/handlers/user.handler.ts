@@ -125,14 +125,14 @@ export class UserHandler {
       // Extract role information (optional)
       const roleId = data.role?.roleId;
 
-      // Convert status to boolean (active = true, archived/inactive = false)
-      const isActive = data.status?.toLowerCase() === 'active';
+      // Map incoming status to RegistrationTracker status values
+      const status = data.status?.toLowerCase() ?? 'active';
 
       // Prepare registration tracker update
       const registrationTrackerData: any = {
         userId: data.userId,
         tenantId: data.tenantId,
-        isActive: isActive,
+        status: status,
         tenantRegnDate: data.createdAt ? new Date(data.createdAt) : undefined,
         reason: data.reason || undefined,
       };
@@ -146,7 +146,7 @@ export class UserHandler {
       await this.dbService.upsertRegistrationTracker(registrationTrackerData);
 
       console.log(
-        `[UserHandler] User tenant status updated: userId=${data.userId}, tenantId=${data.tenantId}, roleId=${roleId || 'N/A'}, status=${data.status}, isActive=${isActive}`
+        `[UserHandler] User tenant status updated: userId=${data.userId}, tenantId=${data.tenantId}, roleId=${roleId || 'N/A'}, status=${status}`
       );
 
       // Optionally update user information if provided
@@ -164,7 +164,7 @@ export class UserHandler {
         console.log(`[UserHandler] User profile also updated for userId=${data.userId}`);
       }
 
-      return { success: true, isActive };
+      return { success: true, status };
     } catch (error) {
       if (error instanceof ValidationError) {
         throw new Error(`Validation failed: ${error.message}`);
@@ -186,8 +186,8 @@ export class UserHandler {
         throw new Error('Role ID is required for tenant mapping');
       }
 
-      // Convert status to boolean (active = true, archived/inactive = false)
-      const isActive = data.status?.toLowerCase() === 'active';
+      // Map incoming status to RegistrationTracker status values
+      const status = data.status?.toLowerCase() ?? 'active';
 
       // Transform and update user data with custom fields if provided
       if (data.customFields && Array.isArray(data.customFields)) {
@@ -213,7 +213,7 @@ export class UserHandler {
         userId: data.userId,
         tenantId: data.tenantId,
         roleId: roleId,
-        isActive: isActive,
+        status: status,
         tenantRegnDate: data.createdAt ? new Date(data.createdAt) : new Date(),
         platformRegnDate: data.createdAt ? new Date(data.createdAt) : new Date(),
       };
@@ -222,10 +222,10 @@ export class UserHandler {
       await this.dbService.upsertRegistrationTracker(registrationTrackerData);
 
       console.log(
-        `[UserHandler] User tenant mapping created/updated: userId=${data.userId}, tenantId=${data.tenantId}, status=${data.status}, isActive=${isActive}`
+        `[UserHandler] User tenant mapping created/updated: userId=${data.userId}, tenantId=${data.tenantId}, status=${status}`
       );
 
-      return { success: true, isActive };
+      return { success: true, status };
     } catch (error) {
       if (error instanceof ValidationError) {
         throw new Error(`Validation failed: ${error.message}`);
