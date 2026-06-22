@@ -40,8 +40,9 @@ export class TransformService {
         if (!data.customFields || !Array.isArray(data.customFields)) {
           return null;
         }
-        const field = data?.customFields.find((f: any) => f?.label === label);
-
+        const field = data?.customFields.find((f: any) => {
+          return f?.label === label
+        });
         if (
           !field ||
           !field.selectedValues ||
@@ -61,7 +62,7 @@ export class TransformService {
           selectedValue !== null
         ) {
           // Return the 'value' property if it exists, otherwise 'id'
-          return selectedValue.id ;
+          return selectedValue.value || selectedValue.id || null;
         }
 
         return null;
@@ -202,7 +203,6 @@ export class TransformService {
         groupMembership: extractCustomField('EMP_GROUP'),
         program: extractCustomField('PROGRAM'),
       };
-      console.log(transformedData,"");
       return transformedData;
     } catch (error) {
       console.error('Error transforming user data:', error);
