@@ -40,9 +40,7 @@ export class TransformService {
         if (!data.customFields || !Array.isArray(data.customFields)) {
           return null;
         }
-        const field = data?.customFields.find((f: any) => {
-          return f?.label === label
-        });
+        const field = data?.customFields.find((f: any) => f?.label === label);
         if (
           !field ||
           !field.selectedValues ||
