@@ -60,7 +60,7 @@ export class TransformService {
           selectedValue !== null
         ) {
           // Return the 'value' property if it exists, otherwise 'id'
-          return selectedValue.value || selectedValue.id || null;
+          return selectedValue.id;
         }
 
         return null;
@@ -177,9 +177,7 @@ export class TransformService {
           'REASON_FOR_DROP_OUT_FROM_SCHOOL',
         ),
         userWorkDomain: extractCustomField('WHAT_IS_YOUR_PRIMARY_WORK'),
-        preferredModeOfLearning: extractCustomField(
-          'WHAT_IS_YOUR_PREFERRED_MODE_OF_LEARNING',
-        ),
+        preferredModeOfLearning: extractCustomFieldById('7b43db0a-f4c3-4c77-919f-622509ca7add'),
 
         // Additional fields from new structure
         centerId: extractCustomField('CENTER'),
