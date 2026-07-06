@@ -326,7 +326,6 @@ export class DatabaseService {
             MemberStatus: cohortMemberData.MemberStatus,
             AcademicYearID: cohortMemberData.AcademicYearID,
             StatusReason: cohortMemberData.StatusReason,
-            UpdatedAt: new Date(),
           },
         );
 
@@ -336,7 +335,6 @@ export class DatabaseService {
             CohortMemberID: existingMember.CohortMemberID,
           }, 
         });
-
         return { action: 'updated', data: updatedMember };
       } else {
         // If no existing record with this academic year, insert new one (adding cohortID and userID with that new academic year)
