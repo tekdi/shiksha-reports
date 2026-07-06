@@ -254,6 +254,8 @@ export class DatabaseService {
       }
     });
 
+    setFragments.push(`"UpdatedAt" = CURRENT_TIMESTAMP`);
+
     params.push(cohortMembershipId);
 
     // Use metadata and quote identifiers to preserve case/schema
@@ -324,6 +326,7 @@ export class DatabaseService {
             MemberStatus: cohortMemberData.MemberStatus,
             AcademicYearID: cohortMemberData.AcademicYearID,
             StatusReason: cohortMemberData.StatusReason,
+            UpdatedAt:cohortMemberData.UpdatedAt
           },
         );
 

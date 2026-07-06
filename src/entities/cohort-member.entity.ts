@@ -19,4 +19,10 @@ export class CohortMember {
 
   @Column({ type: 'uuid', nullable: false })
   AcademicYearID: string;
+
+  @Column({ type: 'timestamp', nullable: false, default: () => 'CURRENT_TIMESTAMP' })
+  CreatedAt: Date;
+
+  @Column({ type: 'timestamp', nullable: false, default: () => 'CURRENT_TIMESTAMP' })
+  UpdatedAt: Date;
 }
