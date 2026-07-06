@@ -25,6 +25,8 @@ export interface CohortData {
   batchId?: string;
   cohortMemberId?: string;// Added to resolve TypeScript error
   statusReason?: string ;
+  createdAt?: string; // Added to resolve TypeScript error
+  updatedAt?: string; // Added to resolve TypeScript error
 }
 
 export interface TenantRole {
