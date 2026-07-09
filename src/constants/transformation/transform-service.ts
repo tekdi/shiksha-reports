@@ -199,6 +199,56 @@ export class TransformService {
         groupMembership: extractCustomField('EMP_GROUP'),
         program: extractCustomField('PROGRAM'),
       };
+
+      const labelToCamelCase = (label: string): string =>
+        label
+          .toLowerCase()
+          .split(/[_\s]+/)
+          .map((word, idx) =>
+            idx === 0 ? word : word.charAt(0).toUpperCase() + word.slice(1),
+          )
+          .join('');
+
+      // Labels already covered by the hardcoded block above
+      const handledLabels = new Set([
+        'STATE', 'DISTRICT', 'BLOCK', 'VILLAGE', 'WORKING_VILLAGE',
+        'FATHER_NAME', 'NAME_OF_GUARDIAN', 'RELATION_WITH_GUARDIAN',
+        'PARENT_GUARDIAN_PHONE_NO',
+        'HIGHEST_EDCATIONAL_QUALIFICATION_OR_LAST_PASSED_GRADE',
+        'MARITAL_STATUS', 'WHAT_DO_YOU_WANT_TO_BECOME',
+        'INTERESTED_TO_JOIN', 'REASON_FOR_DROP_OUT_FROM_SCHOOL',
+        'WHAT_IS_YOUR_PRIMARY_WORK',
+        'CENTER', 'TYPE_OF_PHONE_ACCESSIBLE', 'FAMILY_MEMBER_DETAILS',
+        'DOES_THIS_PHONE_BELONG_TO_YOU',
+        'JOB_FAMILY', 'PSU', 'EMP_GROUP', 'PROGRAM', 'USER_ID', 'WHAT_IS_YOUR_PREFERRED_MODE_OF_LEARNING', 'IS_MANAGER', 'EMP_MANAGER'
+      ]);
+
+      if (Array.isArray(data.customFields)) {
+        for (const field of data.customFields) {
+          const label: string = field?.label;
+          if (!label || handledLabels.has(label)) continue;
+
+          const camelKey = labelToCamelCase(label);
+
+          // Skip if the key was already populated (e.g. via fieldId mapping)
+          if (transformedData[camelKey] !== undefined) continue;
+
+          // Extract using the same logic as extractCustomField
+          if (
+            field.selectedValues &&
+            Array.isArray(field.selectedValues) &&
+            field.selectedValues.length > 0
+          ) {
+            const sv = field.selectedValues[0];
+            if (typeof sv === 'string') {
+              transformedData[camelKey] = sv;
+            } else if (typeof sv === 'object' && sv !== null) {
+              transformedData[camelKey] = sv.value ?? sv.id ?? null;
+            }
+          }
+
+        }
+      }
       return transformedData;
     } catch (error) {
       console.error('Error transforming user data:', error);
