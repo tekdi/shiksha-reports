@@ -61,7 +61,7 @@ function coerceJson(v) {
   return JSON.stringify(String(v));
 }
 
-async function migrateEvents({ limit = 10000, offset = 0 } = {}) {
+async function migrateEvents() {
   console.log('=== STARTING EVENTS MIGRATION ===');
 
   const sourceClient = new Client(dbConfig.event_source);
@@ -86,6 +86,7 @@ async function migrateEvents({ limit = 10000, offset = 0 } = {}) {
         e."createdBy"             AS created_by,
         e."updatedBy"             AS updated_by,
         ed."eventDetailId"        AS event_detail_id,
+        er."eventRepetitionId"    AS event_repetition_id,
         ed."title"                AS title,
         ed."shortDescription"     AS short_description,
         ed."eventType"            AS event_type,
@@ -109,10 +110,9 @@ async function migrateEvents({ limit = 10000, offset = 0 } = {}) {
       JOIN public."EventDetails" ed ON ed."eventDetailId" = e."eventDetailId"
       LEFT JOIN public."EventRepetition" er ON er."eventId" = e."eventId"
       ORDER BY e."eventId"
-      LIMIT $1 OFFSET $2
     `;
 
-    const res = await sourceClient.query(sql, [limit, offset]);
+    const res = await sourceClient.query(sql);
     console.log(`[EVENTS] Fetched ${res.rows.length} rows to migrate`);
 
     const insertSql = `
@@ -122,18 +122,50 @@ async function migrateEvents({ limit = 10000, offset = 0 } = {}) {
         recordings, status, description, "meetingDetails", "createdBy", "updatedBy",
         "idealTime", metadata, attendees, "eventId",
         "startDateTime", "endDateTime", "onlineDetails",
-        "autoEnroll", "registrationStartDate", "registrationEndDate", extra
+        "autoEnroll", "registrationStartDate", "registrationEndDate", extra, "eventRepetitionId"
       ) VALUES (
         $1,$2,$3,$4,$5,
         $6,$7,$8,$9,$10,
         $11::jsonb,$12,$13,$14::jsonb,$15,$16,
         $17,$18::jsonb,$19::jsonb,$20,
         $21,$22,$23::jsonb,
-        $24,$25,$26,$27::jsonb
+        $24,$25,$26,$27::jsonb,$28
       )
+      ON CONFLICT ("eventRepetitionId") DO UPDATE SET
+        "eventDetailId"          = EXCLUDED."eventDetailId",
+        title                    = EXCLUDED.title,
+        "shortDescription"       = EXCLUDED."shortDescription",
+        "eventType"              = EXCLUDED."eventType",
+        "isRestricted"           = EXCLUDED."isRestricted",
+        location                 = EXCLUDED.location,
+        longitude                = EXCLUDED.longitude,
+        latitude                 = EXCLUDED.latitude,
+        "onlineProvider"         = EXCLUDED."onlineProvider",
+        "maxAttendees"           = EXCLUDED."maxAttendees",
+        recordings               = EXCLUDED.recordings,
+        status                   = EXCLUDED.status,
+        description              = EXCLUDED.description,
+        "meetingDetails"         = EXCLUDED."meetingDetails",
+        "createdBy"              = EXCLUDED."createdBy",
+        "updatedBy"              = EXCLUDED."updatedBy",
+        "idealTime"              = EXCLUDED."idealTime",
+        metadata                 = EXCLUDED.metadata,
+        attendees                = EXCLUDED.attendees,
+        "eventId"                = EXCLUDED."eventId",
+        "startDateTime"          = EXCLUDED."startDateTime",
+        "endDateTime"            = EXCLUDED."endDateTime",
+        "onlineDetails"          = EXCLUDED."onlineDetails",
+        "autoEnroll"             = EXCLUDED."autoEnroll",
+        "registrationStartDate"  = EXCLUDED."registrationStartDate",
+        "registrationEndDate"    = EXCLUDED."registrationEndDate",
+        extra                    = EXCLUDED.extra
     `;
 
+    let rowCount = 0;
+    const total = res.rows.length;
+
     for (const r of res.rows) {
+      rowCount++;
       const params = [
         coerceString(r.event_detail_id),
         coerceString(r.title),
@@ -162,12 +194,17 @@ async function migrateEvents({ limit = 10000, offset = 0 } = {}) {
         coerceDate(r.reg_start),
         coerceDate(r.reg_end),
         coerceJson(null),
+        coerceString(r.event_repetition_id),
       ];
 
       try {
         await destClient.query(insertSql, params);
       } catch (e) {
         console.error('[EVENTS] Insert error for eventId:', r.event_id, e.message);
+      }
+
+      if (rowCount % 1000 === 0) {
+        console.log(`[EVENTS] Progress: ${rowCount}/${total} rows processed`);
       }
     }
 
