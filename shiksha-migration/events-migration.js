@@ -108,7 +108,7 @@ async function migrateEvents() {
         er."onlineDetails"        AS online_details
       FROM public."Events" e
       JOIN public."EventDetails" ed ON ed."eventDetailId" = e."eventDetailId"
-      LEFT JOIN public."EventRepetition" er ON er."eventId" = e."eventId"
+      JOIN public."EventRepetition" er ON er."eventId" = e."eventId"
       ORDER BY e."eventId"
     `;
 

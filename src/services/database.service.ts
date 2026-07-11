@@ -151,7 +151,7 @@ export class DatabaseService {
     return this.eventRepo
       .createQueryBuilder()
       .insert()
-      .into('Events')
+      .into(Event)
       .values(data)
       .orUpdate(
         [
@@ -161,7 +161,6 @@ export class DatabaseService {
           'description', 'meetingDetails', 'createdBy', 'updatedBy',
           'idealTime', 'metadata', 'attendees', 'eventId',
           'startDateTime', 'endDateTime', 'onlineDetails',
-          'isRecurring', 'recurrenceEndDate', 'recurrencePattern',
           'autoEnroll', 'extra', 'registrationStartDate', 'registrationEndDate',
         ],
         ['eventRepetitionId'],
