@@ -349,7 +349,10 @@ export class DatabaseService {
             where: { CohortMemberID: dataToSave.CohortMemberID },
           });
           if (idExists) {
-            delete dataToSave.CohortMemberID;
+            console.log(
+              `[DatabaseService] CohortMemberID ${dataToSave.CohortMemberID} already exists — returning existing record without re-inserting.`,
+            );
+            return { action: 'no_change', data: idExists };
           }
         }
 
