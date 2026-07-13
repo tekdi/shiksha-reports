@@ -271,6 +271,8 @@ export class DatabaseService {
       }
     });
 
+    setFragments.push(`"UpdatedAt" = CURRENT_TIMESTAMP`);
+
     params.push(cohortMembershipId);
 
     // Use metadata and quote identifiers to preserve case/schema
@@ -341,6 +343,7 @@ export class DatabaseService {
             MemberStatus: cohortMemberData.MemberStatus,
             AcademicYearID: cohortMemberData.AcademicYearID,
             StatusReason: cohortMemberData.StatusReason,
+            UpdatedAt: cohortMemberData.UpdatedAt,
           },
         );
 
@@ -350,7 +353,6 @@ export class DatabaseService {
             CohortMemberID: existingMember.CohortMemberID,
           }, 
         });
-
         return { action: 'updated', data: updatedMember };
       } else {
         // If no existing record with this academic year, insert new one (adding cohortID and userID with that new academic year)
@@ -365,7 +367,10 @@ export class DatabaseService {
             where: { CohortMemberID: dataToSave.CohortMemberID },
           });
           if (idExists) {
-            delete dataToSave.CohortMemberID;
+            console.log(
+              `[DatabaseService] CohortMemberID ${dataToSave.CohortMemberID} already exists — returning existing record without re-inserting.`,
+            );
+            return { action: 'no_change', data: idExists };
           }
         }
 

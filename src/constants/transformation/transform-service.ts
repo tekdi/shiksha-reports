@@ -220,6 +220,8 @@ export class TransformService {
             AcademicYearID: cohort.academicYearId,
             CohortMemberID: cohort.cohortMemberId,
             StatusReason:cohort.statusReason,
+            CreatedAt: cohort.createdAt,
+            UpdatedAt: cohort.updatedAt,
           };
           cohortMembers.push(cohortMember);
         }
