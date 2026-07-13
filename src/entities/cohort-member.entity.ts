@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, Column, UpdateDateColumn, CreateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
 @Entity({ name: 'CohortMember', schema: 'public' })
 export class CohortMember {
@@ -20,9 +20,9 @@ export class CohortMember {
   @Column({ type: 'uuid', nullable: false })
   AcademicYearID: string;
 
-  @CreateDateColumn({ type: 'timestamp', nullable: false })
+  @Column({ type: 'timestamp', nullable: false})
   CreatedAt: Date;
-  
-  @UpdateDateColumn({ type: 'timestamp', nullable: false })
+
+  @Column({ type: 'timestamp', nullable: false })
   UpdatedAt: Date;
 }

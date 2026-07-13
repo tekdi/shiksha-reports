@@ -326,6 +326,7 @@ export class DatabaseService {
             MemberStatus: cohortMemberData.MemberStatus,
             AcademicYearID: cohortMemberData.AcademicYearID,
             StatusReason: cohortMemberData.StatusReason,
+            UpdatedAt: cohortMemberData.UpdatedAt,
           },
         );
 
