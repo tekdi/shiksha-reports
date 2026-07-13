@@ -55,11 +55,11 @@ export class EventHandler {
       return v;
     };
 
-    // Single table flow: directly save into Events for each repetition
+    // Single table flow: upsert into Events keyed on eventRepetitionId
     await Promise.all(
       data.eventRepetitionData.map(async (eventRepetitionData) => {
         await this.dbService.saveEventData({
-          eventDetailId: coerceString(data.eventDetailsData.eventDetailId)!,
+          eventRepetitionId: coerceString(eventRepetitionData.eventRepetitionId)!,
           title: coerceString(data.eventDetailsData.title),
           shortDescription: coerceString(
             data.eventDetailsData.shortDescription,
@@ -98,11 +98,11 @@ export class EventHandler {
     );
   }
 
-  async handleEventDelete(data: { eventDetailId: string }) {
+  async handleEventDelete(data: { eventRepetitionId: string }) {
     try {
-      validateString(data.eventDetailId, 'eventDetailId');
+      validateString(data.eventRepetitionId, 'eventRepetitionId');
       return this.dbService.deleteEventData({
-        eventDetailId: data.eventDetailId,
+        eventRepetitionId: data.eventRepetitionId,
       });
     } catch (error) {
       if (error instanceof ValidationError) {

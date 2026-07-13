@@ -10,8 +10,10 @@ import {
 export class Event {
   @PrimaryGeneratedColumn('increment')
   id: number;
-  @Column({ type: 'varchar', length: 100 })
-  eventDetailId: string;
+
+  @Column({ type: 'varchar', length: 100, unique: true })
+  eventRepetitionId: string;
+
   @Column({ type: 'varchar', length: 255, nullable: true })
   title: string | null;
 

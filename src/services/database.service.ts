@@ -148,12 +148,29 @@ export class DatabaseService {
 
 
   async saveEventData(data: any) {
-    return this.eventRepo.save(data);
+    return this.eventRepo
+      .createQueryBuilder()
+      .insert()
+      .into(Event)
+      .values(data)
+      .orUpdate(
+        [
+          'title', 'shortDescription', 'eventType',
+          'isRestricted', 'location', 'longitude', 'latitude',
+          'onlineProvider', 'maxAttendees', 'recordings', 'status',
+          'description', 'meetingDetails', 'createdBy', 'updatedBy',
+          'idealTime', 'metadata', 'attendees', 'eventId',
+          'startDateTime', 'endDateTime', 'onlineDetails',
+          'autoEnroll', 'extra', 'registrationStartDate', 'registrationEndDate',
+        ],
+        ['eventRepetitionId'],
+      )
+      .execute();
   }
 
-  async deleteEventData(data: { eventDetailId: string }) {
-    const { eventDetailId } = data;
-    return this.eventRepo.delete({ eventDetailId });
+  async deleteEventData(data: { eventRepetitionId: string }) {
+    const { eventRepetitionId } = data;
+    return this.eventRepo.delete({ eventRepetitionId });
   }
 
   async saveCohortMemberData(data: any) {
