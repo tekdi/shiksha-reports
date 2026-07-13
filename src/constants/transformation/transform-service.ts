@@ -223,6 +223,13 @@ export class TransformService {
         'JOB_FAMILY', 'PSU', 'EMP_GROUP', 'PROGRAM', 'USER_ID', 'WHAT_IS_YOUR_PREFERRED_MODE_OF_LEARNING', 'IS_MANAGER', 'EMP_MANAGER'
       ]);
 
+      // Carries the original SCREAMING_SNAKE label for each dynamic camelKey so
+      // DatabaseService can match it against HANDLED_LABEL_TO_COLUMN exactly,
+      // instead of trying to reverse-derive it from the camelKey (lossy for
+      // labels with digits/punctuation/mixed case, which caused duplicate
+      // columns to be created for fields that were already mapped).
+      const dynamicFieldLabels: Record<string, string> = {};
+
       if (Array.isArray(data.customFields)) {
         for (const field of data.customFields) {
           const label: string = field?.label;
@@ -245,10 +252,16 @@ export class TransformService {
             } else if (typeof sv === 'object' && sv !== null) {
               transformedData[camelKey] = sv.value ?? sv.id ?? null;
             }
+            dynamicFieldLabels[camelKey] = label;
           }
 
         }
       }
+
+      if (Object.keys(dynamicFieldLabels).length > 0) {
+        transformedData._dynamicFieldLabels = dynamicFieldLabels;
+      }
+
       return transformedData;
     } catch (error) {
       console.error('Error transforming user data:', error);

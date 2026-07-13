@@ -133,10 +133,18 @@ export class DatabaseService {
     // Collect all property names known to TypeORM (from the entity)
     const knownPropertyNames = new Set(meta.columns.map((c) => c.propertyName));
 
+    // Exact SCREAMING_SNAKE label for each dynamic camelKey, supplied by
+    // TransformService. Using this instead of reverse-deriving the label from
+    // the camelKey avoids mismatches for labels with digits/punctuation/mixed
+    // case, which would otherwise bypass HANDLED_LABEL_TO_COLUMN and create a
+    // duplicate column for a field that was already mapped.
+    const dynamicFieldLabels: Record<string, string> = data._dynamicFieldLabels || {};
+
     const knownFields: Record<string, any> = {};
     const dynamicFields: Record<string, any> = {};
 
     for (const [key, value] of Object.entries(data)) {
+      if (key === '_dynamicFieldLabels') continue;
       if (knownPropertyNames.has(key)) {
         knownFields[key] = value;
       } else if (key !== 'userId' && value !== undefined && value !== null) {
@@ -208,15 +216,23 @@ export class DatabaseService {
       SUBJECT: 'UserSubject',
       MY_MAIN_SUBJECTS: 'UserMainSubject',
       MEDIUM: 'UserMedium',
+      SUPPORT_NEEDED: 'UserSupportNeeded',
+      WHAT_PROGRAM_ARE_YOU_PART_OF: 'UserWhatProgramAreYouPartOf',
+      IS_VOLUNTEER: 'UserIsVolunteer',
+      WHAT_TYPE_OF_CONTENT_ARE_YOU_INTERESTED_IN: 'UserInterestedContent',
+TYPE_OF_LEARNER: 'UserTypeOfLearner',
+CALL_LOGS: 'UserCallLogs',
+NUMBER_OF_CHILDREN_IN_YOUR_GROUP: 'UserNumOfChildrenWorkingWith',
 
     };
 
     for (const [camelKey, value] of Object.entries(dynamicFields)) {
-      // Convert camelCase key back to SCREAMING_SNAKE_CASE to recover the original label
-      const screamingLabel = camelKey
-        .replace(/([A-Z])/g, '_$1')
-        .toUpperCase()
-        .replace(/^_/, '');
+      // Prefer the exact label supplied by TransformService. Fall back to the
+      // old reverse-derivation only for callers that didn't supply it, since
+      // that conversion is lossy for labels with digits/punctuation/mixed case.
+      const screamingLabel =
+        dynamicFieldLabels[camelKey] ??
+        camelKey.replace(/([A-Z])/g, '_$1').toUpperCase().replace(/^_/, '');
 
       // If this label maps to an existing DB column — update it, do NOT create a new column
       if (HANDLED_LABEL_TO_COLUMN[screamingLabel] !== undefined) {
@@ -234,19 +250,42 @@ export class DatabaseService {
         continue;
       }
 
-      // Genuinely new label — create the column and set value
-      const colName = camelKey.charAt(0).toUpperCase() + camelKey.slice(1);
+      // Genuinely new label — create the column and set value.
+      // Derived from the label itself (not the lossy camelKey round-trip) so the
+      // same label always yields the same column name.
+      const colName = screamingLabel
+        .toLowerCase()
+        .split(/[^a-z0-9]+/)
+        .filter(Boolean)
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join('') || camelKey.charAt(0).toUpperCase() + camelKey.slice(1);
+
+      // ALTER and UPDATE are split into separate try/catches: under concurrent
+      // events for the same brand-new label, "ADD COLUMN IF NOT EXISTS" can still
+      // race and throw "column already exists" (Postgres 42701). That must not
+      // abort the UPDATE — the column exists either way, only the value would be
+      // lost.
       try {
         await dataSource.query(
           `ALTER TABLE "${schemaName}"."${tableName}" ADD COLUMN IF NOT EXISTS "${colName}" TEXT`,
         );
+      } catch (err: any) {
+        if (err?.code !== '42701') {
+          this.logger.error(
+            `[DynamicField] Failed to create column="${colName}" for userId=${data.userId}: ${err?.message}`,
+          );
+          continue;
+        }
+      }
+
+      try {
         await dataSource.query(
           `UPDATE "${schemaName}"."${tableName}" SET "${colName}" = $1 WHERE "UserID" = $2`,
           [String(value), data.userId],
         );
-      } catch (err) {
+      } catch (err: any) {
         this.logger.error(
-          `[DynamicField] Failed for column="${colName}" userId=${data.userId}: ${err?.message}`,
+          `[DynamicField] Failed updating column="${colName}" for userId=${data.userId}: ${err?.message}`,
         );
       }
     }
