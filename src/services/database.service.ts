@@ -127,6 +127,173 @@ export class DatabaseService {
     return String(value);
   }
 
+  async saveUserProfileDataWithDynamicFields(data: Record<string, any>) {
+    const meta = this.userRepo.metadata;
+
+    // Collect all property names known to TypeORM (from the entity)
+    const knownPropertyNames = new Set(meta.columns.map((c) => c.propertyName));
+
+    // Exact SCREAMING_SNAKE label for each dynamic camelKey, supplied by
+    // TransformService. Using this instead of reverse-deriving the label from
+    // the camelKey avoids mismatches for labels with digits/punctuation/mixed
+    // case, which would otherwise bypass HANDLED_LABEL_TO_COLUMN and create a
+    // duplicate column for a field that was already mapped.
+    const dynamicFieldLabels: Record<string, string> = data._dynamicFieldLabels || {};
+
+    const knownFields: Record<string, any> = {};
+    const dynamicFields: Record<string, any> = {};
+
+    for (const [key, value] of Object.entries(data)) {
+      if (key === '_dynamicFieldLabels') continue;
+      if (knownPropertyNames.has(key)) {
+        knownFields[key] = value;
+      } else if (key !== 'userId' && value !== undefined && value !== null) {
+        dynamicFields[key] = value;
+      }
+    }
+
+    // Always include userId in known fields so TypeORM can upsert correctly
+    if (data.userId !== undefined) {
+      knownFields['userId'] = data.userId;
+    }
+
+    // ── Step 1: Save all known/entity-mapped fields via TypeORM ──────────────
+    const savedUser = await this.userRepo.save(knownFields);
+
+    // ── Step 2: Handle dynamic (unknown) fields ──────────────────────────────
+    if (Object.keys(dynamicFields).length === 0) {
+      return savedUser;
+    }
+
+    const schemaName =
+      (meta as any).schema && (meta as any).schema.length > 0
+        ? (meta as any).schema
+        : 'public';
+    const tableName = meta.tableName;
+    const dataSource = this.userRepo.manager.connection;
+
+    // ── Labels that already have a mapped DB column ───────────────────────────
+    // If the incoming dynamic field's label matches one of these, do NOT create
+    // a new column. Instead write the value into the existing mapped DB column.
+    //
+    // Key  : SCREAMING_SNAKE label (as sent in the Kafka event)
+    // Value: exact DB column name in the "Users" table
+    const HANDLED_LABEL_TO_COLUMN: Record<string, string> = {
+      STATE: 'UserStateID',
+      DISTRICT: 'UserDistrictID',
+      BLOCK: 'UserBlockID',
+      VILLAGE: 'UserVillageID',
+      WORKING_VILLAGE: 'UserWorkingVillage',
+      FATHER_NAME: 'UserFatherName',
+      NAME_OF_GUARDIAN: 'UserGuardianName',
+      RELATION_WITH_GUARDIAN: 'UserGuardianRelation',
+      PARENT_GUARDIAN_PHONE_NO: 'UserParentPhone',
+      HIGHEST_EDCATIONAL_QUALIFICATION_OR_LAST_PASSED_GRADE: 'UserClass',
+      MARITAL_STATUS: 'UserMaritalStatus',
+      WHAT_DO_YOU_WANT_TO_BECOME: 'UserWhatDoYouWantToBecome',
+      INTERESTED_TO_JOIN: 'UserInterestedToJoin',
+      REASON_FOR_DROP_OUT_FROM_SCHOOL: 'UserDropOutReason',
+      WHAT_IS_YOUR_PRIMARY_WORK: 'UserWorkDomain',
+      CENTER: 'UserCenterID',
+      TYPE_OF_PHONE_ACCESSIBLE: 'UserPhoneType',
+      FAMILY_MEMBER_DETAILS: 'UserFamilyMemberDetails',
+      DOES_THIS_PHONE_BELONG_TO_YOU: 'UserOwnPhoneCheck',
+      JOB_FAMILY: 'JobFamily',
+      PSU: 'PSU',
+      EMP_GROUP: 'GroupMembership',
+      PROGRAM: 'UserProgram',
+      USER_ID: 'ERPUserID',
+      WHAT_IS_YOUR_PREFERRED_MODE_OF_LEARNING: 'UserPreferredModeOfLearning',
+      IS_MANAGER: 'IsManager',
+      EMP_MANAGER: 'EMPManager',
+      SPOUSE_NAME: 'UserSpouseName',
+      MOTHER_NAME: 'UserMotherName',
+      SUBJECTS_I_TEACH: 'UserSubjectTaught',
+      GRADE: 'UserGrade',
+      HAVE_YOU_RECEIVE_ANY_PRIOR_TRAINING: 'UserTrainingCheck',
+      DESIGNATION: 'UserDesignation',
+      BOARD: 'UserBoard',
+      SUBJECT: 'UserSubject',
+      MY_MAIN_SUBJECTS: 'UserMainSubject',
+      MEDIUM: 'UserMedium',
+      SUPPORT_NEEDED: 'UserSupportNeeded',
+      WHAT_PROGRAM_ARE_YOU_PART_OF: 'UserWhatProgramAreYouPartOf',
+      IS_VOLUNTEER: 'UserIsVolunteer',
+      WHAT_TYPE_OF_CONTENT_ARE_YOU_INTERESTED_IN: 'UserInterestedContent',
+TYPE_OF_LEARNER: 'UserTypeOfLearner',
+CALL_LOGS: 'UserCallLogs',
+NUMBER_OF_CHILDREN_IN_YOUR_GROUP: 'UserNumOfChildrenWorkingWith',
+
+    };
+
+    for (const [camelKey, value] of Object.entries(dynamicFields)) {
+      // Prefer the exact label supplied by TransformService. Fall back to the
+      // old reverse-derivation only for callers that didn't supply it, since
+      // that conversion is lossy for labels with digits/punctuation/mixed case.
+      const screamingLabel =
+        dynamicFieldLabels[camelKey] ??
+        camelKey.replace(/([A-Z])/g, '_$1').toUpperCase().replace(/^_/, '');
+
+      // If this label maps to an existing DB column — update it, do NOT create a new column
+      if (HANDLED_LABEL_TO_COLUMN[screamingLabel] !== undefined) {
+        const existingCol = HANDLED_LABEL_TO_COLUMN[screamingLabel];
+        try {
+          await dataSource.query(
+            `UPDATE "${schemaName}"."${tableName}" SET "${existingCol}" = $1 WHERE "UserID" = $2`,
+            [String(value), data.userId],
+          );
+        } catch (err) {
+          this.logger.error(
+            `[DynamicField] Failed updating column="${existingCol}" for userId=${data.userId}: ${err?.message}`,
+          );
+        }
+        continue;
+      }
+
+      // Genuinely new label — create the column and set value.
+      // Derived from the label itself (not the lossy camelKey round-trip) so the
+      // same label always yields the same column name.
+      const colName = screamingLabel
+        .toLowerCase()
+        .split(/[^a-z0-9]+/)
+        .filter(Boolean)
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join('') || camelKey.charAt(0).toUpperCase() + camelKey.slice(1);
+
+      // ALTER and UPDATE are split into separate try/catches: under concurrent
+      // events for the same brand-new label, "ADD COLUMN IF NOT EXISTS" can still
+      // race and throw "column already exists" (Postgres 42701). That must not
+      // abort the UPDATE — the column exists either way, only the value would be
+      // lost.
+      try {
+        await dataSource.query(
+          `ALTER TABLE "${schemaName}"."${tableName}" ADD COLUMN IF NOT EXISTS "${colName}" TEXT`,
+        );
+      } catch (err: any) {
+        if (err?.code !== '42701') {
+          this.logger.error(
+            `[DynamicField] Failed to create column="${colName}" for userId=${data.userId}: ${err?.message}`,
+          );
+          continue;
+        }
+      }
+
+      try {
+        await dataSource.query(
+          `UPDATE "${schemaName}"."${tableName}" SET "${colName}" = $1 WHERE "UserID" = $2`,
+          [String(value), data.userId],
+        );
+      } catch (err: any) {
+        this.logger.error(
+          `[DynamicField] Failed updating column="${colName}" for userId=${data.userId}: ${err?.message}`,
+        );
+      }
+    }
+
+    return savedUser;
+  }
+
+
   async saveUserProfileData(data: any) {
     return this.userRepo.save(data);
   }
