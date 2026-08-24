@@ -5,7 +5,7 @@ import { DatabaseService } from '../services/database.service';
 export class CohortMemberHandler {
   private readonly logger = new Logger(CohortMemberHandler.name);
 
-  constructor(private readonly dbService: DatabaseService) {}
+  constructor(private readonly dbService: DatabaseService) { }
 
   async handleCohortMemberCreated(data: any) {
     try {
@@ -70,7 +70,7 @@ export class CohortMemberHandler {
       const cohortId: string | undefined = data?.cohortId || data?.CohortID;
       const status: string | undefined = data?.status || data?.MemberStatus;
       const statusReason: string | null | undefined =
-      data?.statusReason !== undefined ? data.statusReason : data?.StatusReason;
+        data?.statusReason !== undefined ? data.statusReason : data?.StatusReason;
       const academicYearId: string | undefined =
         data?.academicYearId || data?.AcademicYearID;
 
@@ -157,8 +157,7 @@ export class CohortMemberHandler {
 
       if (Object.keys(updates).length === 0) {
         this.logger.debug(
-          `No updates to perform | cohortMembershipId=${cohortMembershipId} | status=${status || 'none'} | customFieldsLen=${customFields.length} | fieldsKeys=${
-            data?.fields ? Object.keys(data.fields).join(',') : 'none'
+          `No updates to perform | cohortMembershipId=${cohortMembershipId} | status=${status || 'none'} | customFieldsLen=${customFields.length} | fieldsKeys=${data?.fields ? Object.keys(data.fields).join(',') : 'none'
           }`,
         );
         return;
