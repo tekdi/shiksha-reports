@@ -198,7 +198,7 @@ export class TransformService {
         psu: extractCustomField('PSU'),
         groupMembership: extractCustomField('EMP_GROUP'),
         program: extractCustomField('PROGRAM'),
-        userProgramAreYouPartOf: extractCustomField('WHAT PROGRAM ARE YOU PART OF')
+        c2cUserSubProgram: extractCustomField('WHAT PROGRAM ARE YOU PART OF')
       };
       return transformedData;
     } catch (error) {
@@ -833,7 +833,7 @@ export class TransformService {
         primaryCategory: data.primaryCategory || null,
         channel: data.channel || null,
         status: data.status || null,
-        contentType: data.contentType || null,
+        contentType: data.mimeType || null,
         contentLanguage: transformText(data.contentLanguage),
         domains: transformText(data.domains),
         subdomains: transformText(data.subdomains),

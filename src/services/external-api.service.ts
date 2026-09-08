@@ -426,7 +426,7 @@ export class ExternalApiService {
         primaryCategory: item.primaryCategory || null,
         channel: item.channel || 'pratham',
         status: item.status ? item.status.toLowerCase() : 'live',
-        contentType: item.contentType || null,
+        mimeType: item.mimeType || null,
         contentLanguage: item.contentLanguage ? JSON.stringify(item.contentLanguage) : null,
         domains: item.se_domains ? JSON.stringify(item.se_domains) : null,
         subdomains: item.se_subdomains ? JSON.stringify(item.se_subdomains) : null,
@@ -486,7 +486,7 @@ export class ExternalApiService {
         'contentType', 'contentLanguage', 'se_domains', 'se_subdomains', 'se_subjects',
         'targetAgeGroup', 'audience', 'program', 'keywords', 'description',
         'createdBy', 'lastPublishedOn', 'childNodes', 'createdOn',
-        'assessmentType', 'domain', 'subDomain', 'subject',
+        'assessmentType', 'domain', 'subDomain', 'subject', 'mimeType'
       ];
 
       const filters: any = { identifier };

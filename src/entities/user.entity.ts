@@ -134,12 +134,12 @@ export class User {
   userPreferredLanguage?: string;
 
   @Column({
-    name: 'UserWhatProgramAreYouPartOf',
+    name: 'C2CUserSubProgram',
     type: 'varchar',
     length: 100,
     nullable: true,
   })
-  userProgramAreYouPartOf?: string;
+  c2cUserSubProgram?: string;
 
   @Column({
     name: 'UserParentPhone',
