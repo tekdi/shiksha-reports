@@ -24,7 +24,7 @@ export default registerAs('cron', () => ({
         'identifier', 'name', 'author', 'primaryCategory', 'channel', 'status',
         'contentType', 'contentLanguage', 'se_domains', 'se_subdomains', 'se_subjects',
         'targetAgeGroup', 'audience', 'program', 'keywords', 'description',
-        'createdBy', 'lastPublishedOn', 'childNodes', 'appIcon', 'posterImage', 'createdOn'
+        'createdBy', 'lastPublishedOn', 'childNodes', 'appIcon', 'posterImage', 'createdOn', 'mimeType'
       ]
     },
     questionSet: {
@@ -40,7 +40,7 @@ export default registerAs('cron', () => ({
         'identifier', 'name', 'author', 'primaryCategory', 'channel', 'status',
         'contentType', 'contentLanguage', 'se_domains', 'se_subdomains', 'se_subjects',
         'targetAgeGroup', 'audience', 'program', 'keywords', 'description',
-        'createdBy', 'lastPublishedOn', 'childNodes', 'createdOn'
+        'createdBy', 'lastPublishedOn', 'childNodes', 'createdOn', 'mimeType'
       ]
     }
   },

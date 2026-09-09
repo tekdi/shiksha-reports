@@ -113,7 +113,7 @@ export interface ExternalContentData {
   primaryCategory?: string;
   channel?: string;
   status?: string;
-  contentType?: string;
+  mimeType?: string;
   contentLanguage?: string[] | string;
   domains?: string[] | string;
   subdomains?: string[] | string;
