@@ -647,7 +647,6 @@ export class DatabaseService {
         .orUpdate(
           [
             'contentName',
-            'contentType',
             'contentTrackingStatus',
             'timeSpent',
             'unitId',
