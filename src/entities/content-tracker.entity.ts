@@ -28,13 +28,6 @@ export class ContentTracker {
   })
   contentName: string;
 
-  @Column({
-    name: 'ContentType',
-    type: 'varchar',
-    length: 100,
-    nullable: false,
-  })
-  contentType: string;
 
   @Column({
     name: 'ContentTrackingStatus',

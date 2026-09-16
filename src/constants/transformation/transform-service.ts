@@ -27,9 +27,28 @@ import { ProjectTaskTracking } from 'src/entities/projectTaskTracking.entity';
 import { ExternalCourseData, ExternalQuestionSetData, ExternalContentData } from 'src/types/cron.types';
 import { v4 as uuidv4 } from 'uuid';
 
+const MIME_TYPE_TO_CONTENT_TYPE: Record<string, string> = {
+  'application/vnd.ekstep.h5p-archive': 'H5P',
+  'application/vnd.ekstep.html-archive': 'HTML',
+  'audio/mp3': 'AUDIO_MP3',
+  'audio/wav': 'AUDIO_WAV',
+  'audio/mpeg': 'AUDIO_MPEG',
+  'video/mp4': 'VIDEO_MP4',
+  'video/webm': 'VIDEO_WEBM',
+  'video/x-youtube': 'YOUTUBE',
+  'application/epub': 'EPUB',
+  'application/pdf': 'PDF',
+  'application/vnd.sunbird.questionset': 'ASSESSMENT',
+};
+
 @Injectable()
 export class TransformService {
   constructor(private readonly dbService: DatabaseService) {}
+
+  private mapMimeTypeToContentType(mimeType: string | null | undefined): string | null {
+    if (!mimeType) return null;
+    return MIME_TYPE_TO_CONTENT_TYPE[mimeType] || mimeType;
+  }
 
   async transformUserData(data: UserEventData) {
     try {
@@ -540,7 +559,6 @@ export class TransformService {
         courseId: data.courseId,
         unitId: data.unitId,
         contentName: contentName,
-        contentType: data.contentType,
         contentTrackingStatus: contentTrackingStatus,
         timeSpent: totalTimeSpent, // Round to nearest integer
         createdAt: data.createdOn ? new Date(data.createdOn) : new Date(),
@@ -833,7 +851,7 @@ export class TransformService {
         primaryCategory: data.primaryCategory || null,
         channel: data.channel || null,
         status: data.status || null,
-        contentType: data.mimeType || null,
+        contentType: this.mapMimeTypeToContentType(data.mimeType),
         contentLanguage: transformText(data.contentLanguage),
         domains: transformText(data.domains),
         subdomains: transformText(data.subdomains),

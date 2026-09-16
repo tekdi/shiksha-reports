@@ -138,7 +138,6 @@ export interface ContentTrackingData {
   contentId: string;
   courseId?: string;
   unitId?: string;
-  contentType?: string;
   createdOn?: string;
   updatedOn?: string;
   details?: ContentDetail[];
