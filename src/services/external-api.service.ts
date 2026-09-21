@@ -429,7 +429,7 @@ export class ExternalApiService {
         mimeType: item.mimeType || null,
         contentLanguage: item.contentLanguage ? JSON.stringify(item.contentLanguage) : null,
         domains: item.se_domains ? JSON.stringify(item.se_domains) : null,
-        subdomains: item.se_subdomains ? JSON.stringify(item.se_subdomains) : null,
+        subDomains: item.se_subDomains ? JSON.stringify(item.se_subDomains) : null,
         subjects: item.se_subjects ? JSON.stringify(item.se_subjects) : null,
         targetAgeGroup: item.targetAgeGroup ? JSON.stringify(item.targetAgeGroup) : null,
         audience: item.audience ? JSON.stringify(item.audience) : null,
@@ -483,7 +483,7 @@ export class ExternalApiService {
       // Do NOT filter by primaryCategory — fetch whatever exists for this identifier
       const allFields = [
         'identifier', 'name', 'author', 'primaryCategory', 'channel', 'status',
-        'contentType', 'contentLanguage', 'se_domains', 'se_subdomains', 'se_subjects',
+        'contentType', 'contentLanguage', 'se_domains', 'se_subDomains', 'se_subjects',
         'targetAgeGroup', 'audience', 'program', 'keywords', 'description',
         'createdBy', 'lastPublishedOn', 'childNodes', 'createdOn',
         'assessmentType', 'domain', 'subDomain', 'subject', 'mimeType'

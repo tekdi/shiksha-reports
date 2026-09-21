@@ -854,7 +854,7 @@ export class TransformService {
         contentType: this.mapMimeTypeToContentType(data.mimeType),
         contentLanguage: transformText(data.contentLanguage),
         domains: transformText(data.domains),
-        subdomains: transformText(data.subdomains),
+        subdomains: transformText(data.subDomains),
         subjects: transformText(data.subjects),
         targetAgeGroup: transformText(data.targetAgeGroup),
         audience: transformText(data.audience),
