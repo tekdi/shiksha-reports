@@ -116,7 +116,7 @@ export interface ExternalContentData {
   mimeType?: string;
   contentLanguage?: string[] | string;
   domains?: string[] | string;
-  subdomains?: string[] | string;
+  subDomains?: string[] | string;
   subjects?: string[] | string;
   targetAgeGroup?: string[] | string;
   audience?: string[] | string;

@@ -22,7 +22,7 @@ export default registerAs('cron', () => ({
       primaryCategory: 'Course',
       fields: [
         'identifier', 'name', 'author', 'primaryCategory', 'channel', 'status',
-        'contentType', 'contentLanguage', 'se_domains', 'se_subdomains', 'se_subjects',
+        'contentType', 'contentLanguage', 'se_domains', 'se_subDomains', 'se_subjects',
         'targetAgeGroup', 'audience', 'program', 'keywords', 'description',
         'createdBy', 'lastPublishedOn', 'childNodes', 'appIcon', 'posterImage', 'createdOn', 'mimeType'
       ]
@@ -38,7 +38,7 @@ export default registerAs('cron', () => ({
       primaryCategory: ['Learning Resource', 'Story', 'Activity', 'Interactive'],
       fields: [
         'identifier', 'name', 'author', 'primaryCategory', 'channel', 'status',
-        'contentType', 'contentLanguage', 'se_domains', 'se_subdomains', 'se_subjects',
+        'contentType', 'contentLanguage', 'se_domains', 'se_subDomains', 'se_subjects',
         'targetAgeGroup', 'audience', 'program', 'keywords', 'description',
         'createdBy', 'lastPublishedOn', 'childNodes', 'createdOn', 'mimeType'
       ]
