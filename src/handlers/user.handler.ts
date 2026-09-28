@@ -24,8 +24,7 @@ export class UserHandler {
       const transformedUserData =
         await this.transformService.transformUserData(data);
       const savedUser =
-        await this.dbService.saveUserProfileData(transformedUserData);
-
+        await this.dbService.saveUserProfileDataWithDynamicFields(transformedUserData);
       // Transform and save cohort member data if cohorts exist
       if (
         data.cohorts &&
@@ -192,7 +191,7 @@ export class UserHandler {
       // Transform and update user data with custom fields if provided
       if (data.customFields && Array.isArray(data.customFields)) {
         const transformedUserData = await this.transformService.transformUserData(data);
-        await this.dbService.saveUserProfileData(transformedUserData);
+        await this.dbService.saveUserProfileDataWithDynamicFields(transformedUserData);
         console.log(`[UserHandler] User profile updated with custom fields for userId=${data.userId}`);
       } else if (data.user) {
         // Fallback to basic user update if no custom fields
